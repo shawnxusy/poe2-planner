@@ -23,10 +23,10 @@ interface FetchOptions {
   bypassCache?: boolean;
 }
 
-export async function fetchJsonCached<T = unknown>(
+export async function fetchTextCached(
   url: string,
   opts: FetchOptions = {},
-): Promise<T> {
+): Promise<string> {
   const maxAgeMs = opts.maxAgeMs ?? 6 * 60 * 60 * 1000;
   const path = cachePathFor(url);
 
@@ -37,7 +37,7 @@ export async function fetchJsonCached<T = unknown>(
       if (age <= maxAgeMs) {
         const buf = await readFile(path, "utf-8");
         info("cache hit", { url, ageS: Math.round(age / 1000) });
-        return JSON.parse(buf) as T;
+        return buf;
       }
     } catch {
       // miss
@@ -52,5 +52,13 @@ export async function fetchJsonCached<T = unknown>(
   const text = await res.text();
   await mkdir(dirname(path), { recursive: true });
   await writeFile(path, text, "utf-8");
+  return text;
+}
+
+export async function fetchJsonCached<T = unknown>(
+  url: string,
+  opts: FetchOptions = {},
+): Promise<T> {
+  const text = await fetchTextCached(url, opts);
   return JSON.parse(text) as T;
 }

@@ -14,6 +14,8 @@ const { ingestMods } = await import("./repoe/mods.js");
 const { ingestSkills } = await import("./repoe/skills.js");
 const { ingestUniques } = await import("./repoe/uniques.js");
 const { ingestStatTranslations } = await import("./repoe/stat-translations.js");
+const { ingestPassiveTree } = await import("./repoe/passive-tree.js");
+const { ingestPobUniques } = await import("./pob/uniques.js");
 
 // Each step throws on failure; main() doesn't catch in between. Per the
 // project decision: fail-fast on first error, no partial-success retries.
@@ -33,6 +35,9 @@ async function main() {
   await ingestSkills(patchId);
   await ingestUniques(patchId);
   await ingestStatTranslations(patchId);
+  await ingestPassiveTree(patchId);
+  // PoB Lua enrichment: depends on uniques + base_items being populated.
+  await ingestPobUniques(patchId);
 
   info("ingest done");
   process.exit(0);
