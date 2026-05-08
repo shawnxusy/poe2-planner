@@ -13,15 +13,18 @@
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "db:seed": "tsx scripts/seed-patch.ts"
   },
   "dependencies": {
+    "dotenv": "^17.4.2",
     "drizzle-orm": "^0.38.3",
     "postgres": "^3.4.5"
   },
   "devDependencies": {
     "@poe2/types": "workspace:*",
     "drizzle-kit": "^0.30.1",
+    "tsx": "^4.19.2",
     "typescript": "^5.7.2"
   }
 }
