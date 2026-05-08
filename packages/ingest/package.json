@@ -1,0 +1,21 @@
+{
+  "name": "@poe2/ingest",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/run.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "start": "tsx src/run.ts",
+    "dev": "tsx watch src/run.ts"
+  },
+  "dependencies": {
+    "@poe2/db": "workspace:*",
+    "@poe2/engine": "workspace:*",
+    "@poe2/types": "workspace:*",
+    "tsx": "^4.19.2"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2"
+  }
+}

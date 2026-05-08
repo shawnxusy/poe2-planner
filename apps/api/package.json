@@ -1,0 +1,23 @@
+{
+  "name": "@poe2/api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/server.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "start": "tsx src/server.ts",
+    "dev": "tsx watch src/server.ts"
+  },
+  "dependencies": {
+    "@poe2/db": "workspace:*",
+    "@poe2/engine": "workspace:*",
+    "@poe2/types": "workspace:*",
+    "fastify": "^5.2.0",
+    "@fastify/cors": "^10.0.2",
+    "tsx": "^4.19.2"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2"
+  }
+}
