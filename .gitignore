@@ -42,3 +42,6 @@ drizzle/
 
 # PoB clone (used by ingest, not committed)
 .pob-cache/
+
+# Ingest fetch cache
+.cache/

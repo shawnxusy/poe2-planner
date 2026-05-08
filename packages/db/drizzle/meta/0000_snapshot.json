@@ -1,9 +1,138 @@
 {
-  "id": "50ea5e04-d43e-463c-a2ad-c77f258a4736",
+  "id": "026bafe0-36b8-431e-b537-09080b7e9a74",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
+    "public.ascendancies": {
+      "name": "ascendancies",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "patch_version_id": {
+          "name": "patch_version_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "metadata_id": {
+          "name": "metadata_id",
+          "type": "varchar(256)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar(64)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "character_class_id": {
+          "name": "character_class_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "raw": {
+          "name": "raw",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::jsonb"
+        }
+      },
+      "indexes": {
+        "ascendancies_patch_metadata_unique": {
+          "name": "ascendancies_patch_metadata_unique",
+          "columns": [
+            {
+              "expression": "patch_version_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "metadata_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "ascendancies_patch_idx": {
+          "name": "ascendancies_patch_idx",
+          "columns": [
+            {
+              "expression": "patch_version_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "ascendancies_class_idx": {
+          "name": "ascendancies_class_idx",
+          "columns": [
+            {
+              "expression": "character_class_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "ascendancies_patch_version_id_patch_versions_id_fk": {
+          "name": "ascendancies_patch_version_id_patch_versions_id_fk",
+          "tableFrom": "ascendancies",
+          "tableTo": "patch_versions",
+          "columnsFrom": [
+            "patch_version_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "ascendancies_character_class_id_character_classes_id_fk": {
+          "name": "ascendancies_character_class_id_character_classes_id_fk",
+          "tableFrom": "ascendancies",
+          "tableTo": "character_classes",
+          "columnsFrom": [
+            "character_class_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.base_items": {
       "name": "base_items",
       "schema": "",
@@ -20,6 +149,12 @@
           "primaryKey": false,
           "notNull": true
         },
+        "metadata_id": {
+          "name": "metadata_id",
+          "type": "varchar(256)",
+          "primaryKey": false,
+          "notNull": true
+        },
         "name": {
           "name": "name",
           "type": "varchar(128)",
@@ -31,6 +166,24 @@
           "type": "varchar(64)",
           "primaryKey": false,
           "notNull": true
+        },
+        "domain": {
+          "name": "domain",
+          "type": "varchar(32)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "drop_level": {
+          "name": "drop_level",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "inherits_from": {
+          "name": "inherits_from",
+          "type": "varchar(256)",
+          "primaryKey": false,
+          "notNull": false
         },
         "implicit_mods": {
           "name": "implicit_mods",
@@ -46,8 +199,28 @@
           "notNull": true,
           "default": "'{}'"
         },
-        "requirements": {
-          "name": "requirements",
+        "properties": {
+          "name": "properties",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::jsonb"
+        },
+        "visual_identity": {
+          "name": "visual_identity",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::jsonb"
+        },
+        "release_state": {
+          "name": "release_state",
+          "type": "varchar(32)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "raw": {
+          "name": "raw",
           "type": "jsonb",
           "primaryKey": false,
           "notNull": true,
@@ -55,8 +228,8 @@
         }
       },
       "indexes": {
-        "base_items_patch_name_unique": {
-          "name": "base_items_patch_name_unique",
+        "base_items_patch_metadata_unique": {
+          "name": "base_items_patch_metadata_unique",
           "columns": [
             {
               "expression": "patch_version_id",
@@ -65,7 +238,7 @@
               "nulls": "last"
             },
             {
-              "expression": "name",
+              "expression": "metadata_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -81,6 +254,36 @@
           "columns": [
             {
               "expression": "patch_version_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "base_items_class_idx": {
+          "name": "base_items_class_idx",
+          "columns": [
+            {
+              "expression": "item_class",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "base_items_release_idx": {
+          "name": "base_items_release_idx",
+          "columns": [
+            {
+              "expression": "release_state",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -722,6 +925,279 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "public.character_classes": {
+      "name": "character_classes",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "patch_version_id": {
+          "name": "patch_version_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "metadata_id": {
+          "name": "metadata_id",
+          "type": "varchar(256)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar(64)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "base_stats": {
+          "name": "base_stats",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::jsonb"
+        },
+        "raw": {
+          "name": "raw",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::jsonb"
+        }
+      },
+      "indexes": {
+        "character_classes_patch_metadata_unique": {
+          "name": "character_classes_patch_metadata_unique",
+          "columns": [
+            {
+              "expression": "patch_version_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "metadata_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "character_classes_patch_idx": {
+          "name": "character_classes_patch_idx",
+          "columns": [
+            {
+              "expression": "patch_version_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "character_classes_patch_version_id_patch_versions_id_fk": {
+          "name": "character_classes_patch_version_id_patch_versions_id_fk",
+          "tableFrom": "character_classes",
+          "tableTo": "patch_versions",
+          "columnsFrom": [
+            "patch_version_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.gem_tags": {
+      "name": "gem_tags",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "patch_version_id": {
+          "name": "patch_version_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "key": {
+          "name": "key",
+          "type": "varchar(64)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "translation": {
+          "name": "translation",
+          "type": "varchar(128)",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "gem_tags_patch_key_unique": {
+          "name": "gem_tags_patch_key_unique",
+          "columns": [
+            {
+              "expression": "patch_version_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "key",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "gem_tags_patch_version_id_patch_versions_id_fk": {
+          "name": "gem_tags_patch_version_id_patch_versions_id_fk",
+          "tableFrom": "gem_tags",
+          "tableTo": "patch_versions",
+          "columnsFrom": [
+            "patch_version_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.item_classes": {
+      "name": "item_classes",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "patch_version_id": {
+          "name": "patch_version_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "key": {
+          "name": "key",
+          "type": "varchar(64)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar(64)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "category": {
+          "name": "category",
+          "type": "varchar(64)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "category_id": {
+          "name": "category_id",
+          "type": "varchar(64)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "raw": {
+          "name": "raw",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::jsonb"
+        }
+      },
+      "indexes": {
+        "item_classes_patch_key_unique": {
+          "name": "item_classes_patch_key_unique",
+          "columns": [
+            {
+              "expression": "patch_version_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "key",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "item_classes_patch_version_id_patch_versions_id_fk": {
+          "name": "item_classes_patch_version_id_patch_versions_id_fk",
+          "tableFrom": "item_classes",
+          "tableTo": "patch_versions",
+          "columnsFrom": [
+            "patch_version_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.item_prices": {
       "name": "item_prices",
       "schema": "",
@@ -934,9 +1410,9 @@
           "primaryKey": false,
           "notNull": true
         },
-        "mod_id": {
-          "name": "mod_id",
-          "type": "varchar(96)",
+        "metadata_id": {
+          "name": "metadata_id",
+          "type": "varchar(256)",
           "primaryKey": false,
           "notNull": true
         },
@@ -964,18 +1440,31 @@
           "name": "domain",
           "type": "varchar(32)",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "generation_type": {
           "name": "generation_type",
           "type": "varchar(32)",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
+        },
+        "release_state": {
+          "name": "release_state",
+          "type": "varchar(32)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "raw": {
+          "name": "raw",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::jsonb"
         }
       },
       "indexes": {
-        "mods_patch_modid_unique": {
-          "name": "mods_patch_modid_unique",
+        "mods_patch_metadata_unique": {
+          "name": "mods_patch_metadata_unique",
           "columns": [
             {
               "expression": "patch_version_id",
@@ -984,7 +1473,7 @@
               "nulls": "last"
             },
             {
-              "expression": "mod_id",
+              "expression": "metadata_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -1000,6 +1489,36 @@
           "columns": [
             {
               "expression": "patch_version_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "mods_domain_idx": {
+          "name": "mods_domain_idx",
+          "columns": [
+            {
+              "expression": "domain",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "mods_generation_idx": {
+          "name": "mods_generation_idx",
+          "columns": [
+            {
+              "expression": "generation_type",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -1084,6 +1603,13 @@
           "type": "integer",
           "primaryKey": false,
           "notNull": true
+        },
+        "raw": {
+          "name": "raw",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::jsonb"
         }
       },
       "indexes": {
@@ -1167,6 +1693,12 @@
           "primaryKey": false,
           "notNull": true
         },
+        "internal_version": {
+          "name": "internal_version",
+          "type": "varchar(32)",
+          "primaryKey": false,
+          "notNull": false
+        },
         "released_at": {
           "name": "released_at",
           "type": "timestamp with time zone",
@@ -1244,6 +1776,12 @@
           "primaryKey": false,
           "notNull": true
         },
+        "metadata_id": {
+          "name": "metadata_id",
+          "type": "varchar(256)",
+          "primaryKey": false,
+          "notNull": true
+        },
         "name": {
           "name": "name",
           "type": "varchar(128)",
@@ -1254,7 +1792,7 @@
           "name": "gem_type",
           "type": "varchar(32)",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "tags": {
           "name": "tags",
@@ -1275,11 +1813,24 @@
           "primaryKey": false,
           "notNull": true,
           "default": "'{}'::jsonb"
+        },
+        "release_state": {
+          "name": "release_state",
+          "type": "varchar(32)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "raw": {
+          "name": "raw",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::jsonb"
         }
       },
       "indexes": {
-        "skills_patch_name_unique": {
-          "name": "skills_patch_name_unique",
+        "skills_patch_metadata_unique": {
+          "name": "skills_patch_metadata_unique",
           "columns": [
             {
               "expression": "patch_version_id",
@@ -1288,7 +1839,7 @@
               "nulls": "last"
             },
             {
-              "expression": "name",
+              "expression": "metadata_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -1313,12 +1864,205 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
+        },
+        "skills_name_idx": {
+          "name": "skills_name_idx",
+          "columns": [
+            {
+              "expression": "name",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "skills_release_idx": {
+          "name": "skills_release_idx",
+          "columns": [
+            {
+              "expression": "release_state",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         }
       },
       "foreignKeys": {
         "skills_patch_version_id_patch_versions_id_fk": {
           "name": "skills_patch_version_id_patch_versions_id_fk",
           "tableFrom": "skills",
+          "tableTo": "patch_versions",
+          "columnsFrom": [
+            "patch_version_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.stat_translations": {
+      "name": "stat_translations",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "patch_version_id": {
+          "name": "patch_version_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "stat_ids": {
+          "name": "stat_ids",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "template": {
+          "name": "template",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "raw": {
+          "name": "raw",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::jsonb"
+        }
+      },
+      "indexes": {
+        "stat_translations_patch_idx": {
+          "name": "stat_translations_patch_idx",
+          "columns": [
+            {
+              "expression": "patch_version_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "stat_translations_stat_ids_gin": {
+          "name": "stat_translations_stat_ids_gin",
+          "columns": [
+            {
+              "expression": "stat_ids",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "gin",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "stat_translations_patch_version_id_patch_versions_id_fk": {
+          "name": "stat_translations_patch_version_id_patch_versions_id_fk",
+          "tableFrom": "stat_translations",
+          "tableTo": "patch_versions",
+          "columnsFrom": [
+            "patch_version_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.tags": {
+      "name": "tags",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "patch_version_id": {
+          "name": "patch_version_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "key": {
+          "name": "key",
+          "type": "varchar(64)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "raw": {
+          "name": "raw",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::jsonb"
+        }
+      },
+      "indexes": {
+        "tags_patch_key_unique": {
+          "name": "tags_patch_key_unique",
+          "columns": [
+            {
+              "expression": "patch_version_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "key",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "tags_patch_version_id_patch_versions_id_fk": {
+          "name": "tags_patch_version_id_patch_versions_id_fk",
+          "tableFrom": "tags",
           "tableTo": "patch_versions",
           "columnsFrom": [
             "patch_version_id"
@@ -1352,6 +2096,12 @@
           "primaryKey": false,
           "notNull": true
         },
+        "metadata_id": {
+          "name": "metadata_id",
+          "type": "varchar(256)",
+          "primaryKey": false,
+          "notNull": true
+        },
         "name": {
           "name": "name",
           "type": "varchar(128)",
@@ -1370,11 +2120,24 @@
           "primaryKey": false,
           "notNull": true,
           "default": "'{}'"
+        },
+        "release_state": {
+          "name": "release_state",
+          "type": "varchar(32)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "raw": {
+          "name": "raw",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::jsonb"
         }
       },
       "indexes": {
-        "unique_items_patch_name_unique": {
-          "name": "unique_items_patch_name_unique",
+        "unique_items_patch_metadata_unique": {
+          "name": "unique_items_patch_metadata_unique",
           "columns": [
             {
               "expression": "patch_version_id",
@@ -1383,7 +2146,7 @@
               "nulls": "last"
             },
             {
-              "expression": "name",
+              "expression": "metadata_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -1399,6 +2162,21 @@
           "columns": [
             {
               "expression": "patch_version_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "unique_items_name_idx": {
+          "name": "unique_items_name_idx",
+          "columns": [
+            {
+              "expression": "name",
               "isExpression": false,
               "asc": true,
               "nulls": "last"

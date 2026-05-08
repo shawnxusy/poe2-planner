@@ -10,6 +10,7 @@ const inserted = await db
   .values({
     tag: "0.4",
     label: "Fate of the Vaal",
+    internal_version: "4.4.0.11.2",
     released_at: new Date("2026-02-01T00:00:00Z"),
     is_current: true,
   })

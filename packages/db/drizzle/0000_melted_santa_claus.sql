@@ -1,11 +1,27 @@
+CREATE TABLE "ascendancies" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"patch_version_id" integer NOT NULL,
+	"metadata_id" varchar(256) NOT NULL,
+	"name" varchar(64) NOT NULL,
+	"character_class_id" integer,
+	"raw" jsonb DEFAULT '{}'::jsonb NOT NULL
+);
+--> statement-breakpoint
 CREATE TABLE "base_items" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"patch_version_id" integer NOT NULL,
+	"metadata_id" varchar(256) NOT NULL,
 	"name" varchar(128) NOT NULL,
 	"item_class" varchar(64) NOT NULL,
+	"domain" varchar(32),
+	"drop_level" integer,
+	"inherits_from" varchar(256),
 	"implicit_mods" text[] DEFAULT '{}' NOT NULL,
 	"tags" text[] DEFAULT '{}' NOT NULL,
-	"requirements" jsonb DEFAULT '{}'::jsonb NOT NULL
+	"properties" jsonb DEFAULT '{}'::jsonb NOT NULL,
+	"visual_identity" jsonb DEFAULT '{}'::jsonb NOT NULL,
+	"release_state" varchar(32),
+	"raw" jsonb DEFAULT '{}'::jsonb NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "build_items" (
@@ -64,6 +80,33 @@ CREATE TABLE "builds" (
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
+CREATE TABLE "character_classes" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"patch_version_id" integer NOT NULL,
+	"metadata_id" varchar(256) NOT NULL,
+	"name" varchar(64) NOT NULL,
+	"description" text,
+	"base_stats" jsonb DEFAULT '{}'::jsonb NOT NULL,
+	"raw" jsonb DEFAULT '{}'::jsonb NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "gem_tags" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"patch_version_id" integer NOT NULL,
+	"key" varchar(64) NOT NULL,
+	"translation" varchar(128)
+);
+--> statement-breakpoint
+CREATE TABLE "item_classes" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"patch_version_id" integer NOT NULL,
+	"key" varchar(64) NOT NULL,
+	"name" varchar(64) NOT NULL,
+	"category" varchar(64),
+	"category_id" varchar(64),
+	"raw" jsonb DEFAULT '{}'::jsonb NOT NULL
+);
+--> statement-breakpoint
 CREATE TABLE "item_prices" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"patch_version_id" integer NOT NULL,
@@ -84,12 +127,14 @@ CREATE TABLE "meta_snapshots" (
 CREATE TABLE "mods" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"patch_version_id" integer NOT NULL,
-	"mod_id" varchar(96) NOT NULL,
+	"metadata_id" varchar(256) NOT NULL,
 	"name" varchar(128),
 	"stats" text[] DEFAULT '{}' NOT NULL,
 	"tags" text[] DEFAULT '{}' NOT NULL,
-	"domain" varchar(32) NOT NULL,
-	"generation_type" varchar(32) NOT NULL
+	"domain" varchar(32),
+	"generation_type" varchar(32),
+	"release_state" varchar(32),
+	"raw" jsonb DEFAULT '{}'::jsonb NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "passives" (
@@ -100,13 +145,15 @@ CREATE TABLE "passives" (
 	"type" varchar(32) NOT NULL,
 	"stats" text[] DEFAULT '{}' NOT NULL,
 	"x" integer NOT NULL,
-	"y" integer NOT NULL
+	"y" integer NOT NULL,
+	"raw" jsonb DEFAULT '{}'::jsonb NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "patch_versions" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"tag" varchar(16) NOT NULL,
 	"label" varchar(128) NOT NULL,
+	"internal_version" varchar(32),
 	"released_at" timestamp with time zone,
 	"is_current" boolean DEFAULT false NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL
@@ -115,21 +162,44 @@ CREATE TABLE "patch_versions" (
 CREATE TABLE "skills" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"patch_version_id" integer NOT NULL,
+	"metadata_id" varchar(256) NOT NULL,
 	"name" varchar(128) NOT NULL,
-	"gem_type" varchar(32) NOT NULL,
+	"gem_type" varchar(32),
 	"tags" text[] DEFAULT '{}' NOT NULL,
 	"damage_effectiveness" numeric(6, 3),
-	"base_stats" jsonb DEFAULT '{}'::jsonb NOT NULL
+	"base_stats" jsonb DEFAULT '{}'::jsonb NOT NULL,
+	"release_state" varchar(32),
+	"raw" jsonb DEFAULT '{}'::jsonb NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "stat_translations" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"patch_version_id" integer NOT NULL,
+	"stat_ids" text[] NOT NULL,
+	"template" text NOT NULL,
+	"raw" jsonb DEFAULT '{}'::jsonb NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "tags" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"patch_version_id" integer NOT NULL,
+	"key" varchar(64) NOT NULL,
+	"raw" jsonb DEFAULT '{}'::jsonb NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "unique_items" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"patch_version_id" integer NOT NULL,
+	"metadata_id" varchar(256) NOT NULL,
 	"name" varchar(128) NOT NULL,
 	"base_item_id" integer,
-	"stats" text[] DEFAULT '{}' NOT NULL
+	"stats" text[] DEFAULT '{}' NOT NULL,
+	"release_state" varchar(32),
+	"raw" jsonb DEFAULT '{}'::jsonb NOT NULL
 );
 --> statement-breakpoint
+ALTER TABLE "ascendancies" ADD CONSTRAINT "ascendancies_patch_version_id_patch_versions_id_fk" FOREIGN KEY ("patch_version_id") REFERENCES "public"."patch_versions"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "ascendancies" ADD CONSTRAINT "ascendancies_character_class_id_character_classes_id_fk" FOREIGN KEY ("character_class_id") REFERENCES "public"."character_classes"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "base_items" ADD CONSTRAINT "base_items_patch_version_id_patch_versions_id_fk" FOREIGN KEY ("patch_version_id") REFERENCES "public"."patch_versions"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "build_items" ADD CONSTRAINT "build_items_build_id_builds_id_fk" FOREIGN KEY ("build_id") REFERENCES "public"."builds"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "build_items" ADD CONSTRAINT "build_items_unique_item_id_unique_items_id_fk" FOREIGN KEY ("unique_item_id") REFERENCES "public"."unique_items"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
@@ -139,15 +209,25 @@ ALTER TABLE "build_skills" ADD CONSTRAINT "build_skills_build_id_builds_id_fk" F
 ALTER TABLE "build_skills" ADD CONSTRAINT "build_skills_skill_id_skills_id_fk" FOREIGN KEY ("skill_id") REFERENCES "public"."skills"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "build_stats" ADD CONSTRAINT "build_stats_build_id_builds_id_fk" FOREIGN KEY ("build_id") REFERENCES "public"."builds"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "builds" ADD CONSTRAINT "builds_patch_version_id_patch_versions_id_fk" FOREIGN KEY ("patch_version_id") REFERENCES "public"."patch_versions"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "character_classes" ADD CONSTRAINT "character_classes_patch_version_id_patch_versions_id_fk" FOREIGN KEY ("patch_version_id") REFERENCES "public"."patch_versions"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "gem_tags" ADD CONSTRAINT "gem_tags_patch_version_id_patch_versions_id_fk" FOREIGN KEY ("patch_version_id") REFERENCES "public"."patch_versions"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "item_classes" ADD CONSTRAINT "item_classes_patch_version_id_patch_versions_id_fk" FOREIGN KEY ("patch_version_id") REFERENCES "public"."patch_versions"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "item_prices" ADD CONSTRAINT "item_prices_patch_version_id_patch_versions_id_fk" FOREIGN KEY ("patch_version_id") REFERENCES "public"."patch_versions"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "meta_snapshots" ADD CONSTRAINT "meta_snapshots_patch_version_id_patch_versions_id_fk" FOREIGN KEY ("patch_version_id") REFERENCES "public"."patch_versions"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "mods" ADD CONSTRAINT "mods_patch_version_id_patch_versions_id_fk" FOREIGN KEY ("patch_version_id") REFERENCES "public"."patch_versions"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "passives" ADD CONSTRAINT "passives_patch_version_id_patch_versions_id_fk" FOREIGN KEY ("patch_version_id") REFERENCES "public"."patch_versions"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "skills" ADD CONSTRAINT "skills_patch_version_id_patch_versions_id_fk" FOREIGN KEY ("patch_version_id") REFERENCES "public"."patch_versions"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "stat_translations" ADD CONSTRAINT "stat_translations_patch_version_id_patch_versions_id_fk" FOREIGN KEY ("patch_version_id") REFERENCES "public"."patch_versions"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "tags" ADD CONSTRAINT "tags_patch_version_id_patch_versions_id_fk" FOREIGN KEY ("patch_version_id") REFERENCES "public"."patch_versions"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "unique_items" ADD CONSTRAINT "unique_items_patch_version_id_patch_versions_id_fk" FOREIGN KEY ("patch_version_id") REFERENCES "public"."patch_versions"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "unique_items" ADD CONSTRAINT "unique_items_base_item_id_base_items_id_fk" FOREIGN KEY ("base_item_id") REFERENCES "public"."base_items"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
-CREATE UNIQUE INDEX "base_items_patch_name_unique" ON "base_items" USING btree ("patch_version_id","name");--> statement-breakpoint
+CREATE UNIQUE INDEX "ascendancies_patch_metadata_unique" ON "ascendancies" USING btree ("patch_version_id","metadata_id");--> statement-breakpoint
+CREATE INDEX "ascendancies_patch_idx" ON "ascendancies" USING btree ("patch_version_id");--> statement-breakpoint
+CREATE INDEX "ascendancies_class_idx" ON "ascendancies" USING btree ("character_class_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "base_items_patch_metadata_unique" ON "base_items" USING btree ("patch_version_id","metadata_id");--> statement-breakpoint
 CREATE INDEX "base_items_patch_idx" ON "base_items" USING btree ("patch_version_id");--> statement-breakpoint
+CREATE INDEX "base_items_class_idx" ON "base_items" USING btree ("item_class");--> statement-breakpoint
+CREATE INDEX "base_items_release_idx" ON "base_items" USING btree ("release_state");--> statement-breakpoint
 CREATE UNIQUE INDEX "build_items_slot_unique" ON "build_items" USING btree ("build_id","slot");--> statement-breakpoint
 CREATE INDEX "build_items_build_idx" ON "build_items" USING btree ("build_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "build_passives_unique" ON "build_passives" USING btree ("build_id","passive_id");--> statement-breakpoint
@@ -159,17 +239,29 @@ CREATE INDEX "builds_patch_idx" ON "builds" USING btree ("patch_version_id");-->
 CREATE INDEX "builds_class_idx" ON "builds" USING btree ("character_class");--> statement-breakpoint
 CREATE INDEX "builds_archetype_idx" ON "builds" USING btree ("archetype");--> statement-breakpoint
 CREATE INDEX "builds_published_idx" ON "builds" USING btree ("is_published");--> statement-breakpoint
+CREATE UNIQUE INDEX "character_classes_patch_metadata_unique" ON "character_classes" USING btree ("patch_version_id","metadata_id");--> statement-breakpoint
+CREATE INDEX "character_classes_patch_idx" ON "character_classes" USING btree ("patch_version_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "gem_tags_patch_key_unique" ON "gem_tags" USING btree ("patch_version_id","key");--> statement-breakpoint
+CREATE UNIQUE INDEX "item_classes_patch_key_unique" ON "item_classes" USING btree ("patch_version_id","key");--> statement-breakpoint
 CREATE INDEX "item_prices_patch_name_idx" ON "item_prices" USING btree ("patch_version_id","item_name");--> statement-breakpoint
 CREATE INDEX "item_prices_fetched_idx" ON "item_prices" USING btree ("fetched_at");--> statement-breakpoint
 CREATE INDEX "meta_snapshots_patch_source_idx" ON "meta_snapshots" USING btree ("patch_version_id","source");--> statement-breakpoint
 CREATE INDEX "meta_snapshots_fetched_idx" ON "meta_snapshots" USING btree ("fetched_at");--> statement-breakpoint
-CREATE UNIQUE INDEX "mods_patch_modid_unique" ON "mods" USING btree ("patch_version_id","mod_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "mods_patch_metadata_unique" ON "mods" USING btree ("patch_version_id","metadata_id");--> statement-breakpoint
 CREATE INDEX "mods_patch_idx" ON "mods" USING btree ("patch_version_id");--> statement-breakpoint
+CREATE INDEX "mods_domain_idx" ON "mods" USING btree ("domain");--> statement-breakpoint
+CREATE INDEX "mods_generation_idx" ON "mods" USING btree ("generation_type");--> statement-breakpoint
 CREATE UNIQUE INDEX "passives_patch_node_unique" ON "passives" USING btree ("patch_version_id","node_id");--> statement-breakpoint
 CREATE INDEX "passives_patch_idx" ON "passives" USING btree ("patch_version_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "patch_versions_tag_unique" ON "patch_versions" USING btree ("tag");--> statement-breakpoint
 CREATE UNIQUE INDEX "patch_versions_only_one_current" ON "patch_versions" USING btree ("is_current") WHERE is_current = true;--> statement-breakpoint
-CREATE UNIQUE INDEX "skills_patch_name_unique" ON "skills" USING btree ("patch_version_id","name");--> statement-breakpoint
+CREATE UNIQUE INDEX "skills_patch_metadata_unique" ON "skills" USING btree ("patch_version_id","metadata_id");--> statement-breakpoint
 CREATE INDEX "skills_patch_idx" ON "skills" USING btree ("patch_version_id");--> statement-breakpoint
-CREATE UNIQUE INDEX "unique_items_patch_name_unique" ON "unique_items" USING btree ("patch_version_id","name");--> statement-breakpoint
-CREATE INDEX "unique_items_patch_idx" ON "unique_items" USING btree ("patch_version_id");
+CREATE INDEX "skills_name_idx" ON "skills" USING btree ("name");--> statement-breakpoint
+CREATE INDEX "skills_release_idx" ON "skills" USING btree ("release_state");--> statement-breakpoint
+CREATE INDEX "stat_translations_patch_idx" ON "stat_translations" USING btree ("patch_version_id");--> statement-breakpoint
+CREATE INDEX "stat_translations_stat_ids_gin" ON "stat_translations" USING gin ("stat_ids");--> statement-breakpoint
+CREATE UNIQUE INDEX "tags_patch_key_unique" ON "tags" USING btree ("patch_version_id","key");--> statement-breakpoint
+CREATE UNIQUE INDEX "unique_items_patch_metadata_unique" ON "unique_items" USING btree ("patch_version_id","metadata_id");--> statement-breakpoint
+CREATE INDEX "unique_items_patch_idx" ON "unique_items" USING btree ("patch_version_id");--> statement-breakpoint
+CREATE INDEX "unique_items_name_idx" ON "unique_items" USING btree ("name");

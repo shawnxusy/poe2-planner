@@ -13,6 +13,8 @@
     "@poe2/db": "workspace:*",
     "@poe2/engine": "workspace:*",
     "@poe2/types": "workspace:*",
+    "dotenv": "^17.4.2",
+    "drizzle-orm": "^0.38.3",
     "tsx": "^4.19.2"
   },
   "devDependencies": {
