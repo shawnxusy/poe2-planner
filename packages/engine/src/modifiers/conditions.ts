@@ -28,6 +28,7 @@ const CONDITION_RECOGNISED = new Set<string>([
   "herald_of_ash",
   "herald_of_thunder",
   "non_final_strike",
+  "not_hit_recently",
 ]);
 
 export function isModActive(mod: ModEntry, assumptions: CalcAssumptions): boolean {

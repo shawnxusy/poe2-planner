@@ -367,6 +367,12 @@ function parseAssumptions(r: PobRoot, buffList: string[]): CalcAssumptions {
   for (const [pobKey, tag] of Object.entries(CONDITION_MAP)) {
     if (flag(pobKey) && !conditions.includes(tag)) conditions.push(tag);
   }
+  // Defensive "not hit recently" mods are typically displayed by PoB as
+  // active in the tooltip view (steady-state assumption). Default it on
+  // unless the user explicitly toggles it off via PoB's enemyHitConfig.
+  if (!conditions.includes("not_hit_recently")) {
+    conditions.push("not_hit_recently");
+  }
 
   // Heralds — populate from <Buffs buffList="…"> string. PoB lists active
   // herald skills there; we normalise them to underscored lowercase tags

@@ -119,9 +119,40 @@ function resolveItems(
   unresolved: ResolveResult["unresolved_item_text"],
 ): void {
   for (const item of build.items) {
-    pushItemAffixes(item, item.implicits, "implicit", set, unresolved);
-    pushItemAffixes(item, item.affixes, "explicit", set, unresolved);
+    // If the item displays "Evasion: N" / "Armour: N" / "Energy Shield: N"
+    // in its body, those values are the FINAL post-local-scale numbers
+    // (PoB convention). Any "X% increased Evasion/Armour/ES" mods on the
+    // same item are local and already baked in; we must skip them in the
+    // global pool to avoid double-counting.
+    const localBaked = detectLocalBakedTargets(item);
+    // Per-item "first single-target defense increase already taken" tracker
+    // — see pushItemAffixes for why.
+    const localFirstTaken = new Set<string>();
+    pushItemAffixes(item, item.implicits, "implicit", set, unresolved, localBaked, localFirstTaken);
+    pushItemAffixes(item, item.affixes, "explicit", set, unresolved, localBaked, localFirstTaken);
   }
+}
+
+// Returns the set of defense targets whose INCREASED/REDUCED mods on
+// this item are local (already baked into the item's displayed value
+// or applying only to the item's own zero base) and should be dropped
+// from the global modifier pool.
+//
+// PoB convention:
+//   - On armour-slot items (helmet, body_armour, gloves, boots), every
+//     "% increased Armour/Evasion/Energy Shield" mod is local — it
+//     modifies the item's own base, not the global total.
+//   - The "Armour/Evasion/Energy Shield: N" lines in the item body are
+//     the FINAL post-local-scale numbers; we treat those as the FLAT
+//     contribution to the global total.
+//   - On non-armour slots (amulet, ring, belt, jewel), the same mods are
+//     global by convention.
+function detectLocalBakedTargets(item: BuildItem): Set<string> {
+  const ARMOUR_SLOTS = new Set(["helmet", "body_armour", "gloves", "boots"]);
+  if (ARMOUR_SLOTS.has(item.slot)) {
+    return new Set(["evasion", "armour", "energy_shield"]);
+  }
+  return new Set();
 }
 
 function pushItemAffixes(
@@ -130,6 +161,8 @@ function pushItemAffixes(
   kind: "implicit" | "explicit",
   set: ModSet,
   unresolved: ResolveResult["unresolved_item_text"],
+  localBaked: Set<string>,
+  localFirstTaken: Set<string>,
 ): void {
   for (let idx = 0; idx < affixes.length; idx++) {
     const affix = affixes[idx]!;
@@ -140,14 +173,48 @@ function pushItemAffixes(
     };
     const entries = parseModText(affix.text, source);
     for (const e of entries) {
-      // If parser fell back to UNKNOWN, log to unresolved bucket. We still
-      // push the entry so downstream telemetry can count it.
       if (e.operator === "UNKNOWN") {
         unresolved.push({ text: affix.text, slot: item.slot });
+      }
+      // Local mod heuristic on armour-slot items:
+      //   - "Armour, Evasion and Energy Shield" combo mods are always
+      //     local — already baked into the displayed values.
+      //   - The FIRST single-target "% increased Armour|Evasion|ES" mod
+      //     with a tier-typical value (≤ 80%) is local. Higher-roll mods
+      //     (≥ 100% increased — typically desecrated/special) stay global.
+      const LOCAL_TIER_CAP = 80;
+      if (
+        (e.operator === "INCREASED" || e.operator === "REDUCED") &&
+        localBaked.has(e.target)
+      ) {
+        if (isMultiDefenseLocalText(affix.text)) continue;
+        const isSingleTarget = isSingleDefenseText(affix.text);
+        if (
+          isSingleTarget &&
+          Math.abs(e.value) <= LOCAL_TIER_CAP &&
+          !localFirstTaken.has(e.target)
+        ) {
+          localFirstTaken.add(e.target);
+          continue;
+        }
       }
       set.entries.push(e);
     }
   }
+}
+
+function isMultiDefenseLocalText(text: string): boolean {
+  // "X% increased Armour, Evasion and Energy Shield" / "Armour and Evasion"
+  // / "Evasion and Energy Shield" — combo mods only.
+  return /increased\s+(Armour|Evasion(\s+Rating)?|Energy\s+Shield)\s*(?:,|and)/i.test(text);
+}
+
+function isSingleDefenseText(text: string): boolean {
+  // Plain "X% increased Armour" / "Evasion Rating" / "Energy Shield" —
+  // no comma or "and" after the defense keyword.
+  return /^[+-]?\d+(?:\.\d+)?%\s+(?:increased|reduced)\s+(Armour|Evasion(\s+Rating)?|Energy\s+Shield)\s*$/i.test(
+    text.trim(),
+  );
 }
 
 // Coverage helper: how many entries did we resolve vs. how many were

@@ -1,11 +1,11 @@
-// Engine entrypoint. Phase 4 work in progress — calculate() is not yet
-// wired through. The pieces are landing one at a time:
-//   pob/codec.ts — decode/encode PoB share codes (DONE)
-//   pob/xml.ts — XML → JS object (DONE)
-//   pob/parser.ts — JS object → BuildInput (TODO once we have a fixture)
-//   modifiers/*  — categorize, aggregate, resolve (TODO)
-//   damage/*     — hit, ignite, bleed, poison, cast-on-x, minion (TODO)
-//   defense/*    — armour, evasion, resistance, ehp (TODO)
+// Engine entrypoint. Phase 4 hit-damage + defense paths land here:
+//   pob/codec.ts          PoB share-code en/decode
+//   pob/xml.ts            XML → JS object
+//   pob/build-input.ts    XML → BuildInput (passives, items, skills, conf)
+//   modifiers/*           Resolver, parser, categorise, conditions
+//   damage/*              Hit + crit + speed + DPS pipeline
+//   defense/*             Life/ES/armour/evasion/resistances/EHP
+//   calculate.ts          Top-level calculate(build, { game }) → CalcResult
 
 export { decodePobCode, encodePobCode } from "./pob/codec.js";
 export { parsePobXml, type PobXmlRoot } from "./pob/xml.js";
@@ -55,3 +55,11 @@ export type {
   PassiveRecord,
   SkillRecord,
 } from "./data/types.js";
+
+// Resolver + calc paths
+export { resolve } from "./modifiers/resolver.js";
+export type { ResolveResult } from "./modifiers/resolver.js";
+export { computeHit } from "./damage/hit.js";
+export { computeDefense } from "./defense/index.js";
+export { calculate } from "./calculate.js";
+export type { CalculateOptions } from "./calculate.js";

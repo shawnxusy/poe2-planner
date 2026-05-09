@@ -122,6 +122,21 @@ const TARGET_PATTERNS: Array<[RegExp, ModTarget]> = [
   [/\bdamage\b/i, "any_damage"],
 ];
 
+// Map a free-text condition trailer ("if you have not been Hit Recently")
+// onto a discrete condition tag the resolver/damage paths can gate on.
+// Conditions we don't recognise pass through as the raw lowercase phrase
+// so debug tooling can still see them.
+function conditionToTag(rawCondition: string): string {
+  const c = rawCondition.toLowerCase();
+  if (/not\s+been\s+hit\s+recently/.test(c)) return "not_hit_recently";
+  if (/full\s+life/.test(c)) return "full_life";
+  if (/low\s+life/.test(c)) return "low_life";
+  if (/frozen/.test(c)) return "vs_frozen";
+  if (/shocked/.test(c)) return "enemy_shocked";
+  if (/chilled/.test(c)) return "enemy_chilled";
+  return c.replace(/\s+/g, "_");
+}
+
 function resolveTarget(text: string): ModTarget | null {
   for (const [re, target] of TARGET_PATTERNS) {
     if (re.test(text)) return target;
@@ -175,6 +190,35 @@ const HANDLERS: Handler[] = [
       if (out && out.length > 0) return out;
     }
     return null;
+  },
+
+  // "<Stat> is doubled" / "<Stat> is tripled" — PoE2 has these as MORE
+  // multipliers on certain unique-style mods. The full text often has a
+  // condition trailer ("if you have not been Hit Recently"); we strip the
+  // condition into a tag so the resolver can gate it appropriately.
+  (ctx) => {
+    const m = ctx.text.match(
+      /^(.+?)\s+is\s+(doubled|tripled|quadrupled)(?:\s+(if|while|when)\s+(.+))?$/i,
+    );
+    if (!m) return null;
+    const stat = m[1]!.trim();
+    const factor = m[2]!.toLowerCase();
+    const condition = m[4]?.toLowerCase();
+    const target = resolveTarget(stat);
+    if (!target) return null;
+    const value = factor === "doubled" ? 100 : factor === "tripled" ? 200 : 300;
+    const tags = [...ctx.tags];
+    if (condition) tags.push("conditional", conditionToTag(condition));
+    return [
+      {
+        operator: "MORE" as ModOperator,
+        target,
+        value,
+        tags,
+        source_text: ctx.text,
+        source: ctx.source,
+      },
+    ];
   },
 
   // "+N to Level of all <Type> Skills" — skill level grants.
