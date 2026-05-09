@@ -19,7 +19,9 @@ import type { BuildInput, BuildItem, ItemAffix } from "@poe2/types";
 import type { GameData } from "../data/types.js";
 import { categorize } from "./categorize.js";
 import { chargeMods } from "./charges.js";
+import { hollowPalmMods } from "./hollow-palm.js";
 import { parseModText } from "./parser.js";
+import { rageMods } from "./rage.js";
 import { skillBaseMods, supportMods } from "./skill-base.js";
 import { statToMods } from "./stat-mapping.js";
 import type { ModEntry, ModSet, ModSource } from "./types.js";
@@ -46,6 +48,8 @@ export function resolve(build: BuildInput, game: GameData): ResolveResult {
   resolveQuestRewards(build, set);
   resolveMainSkill(build, game, set);
   for (const m of chargeMods(build.assumptions)) set.entries.push(m);
+  for (const m of rageMods(build.assumptions)) set.entries.push(m);
+  for (const m of hollowPalmMods(build)) set.entries.push(m);
 
   // Categorize once at the end so resolver-side authors don't need to
   // remember the scope rules. Returns a fresh array, so we re-attach.

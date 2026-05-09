@@ -26,6 +26,7 @@ export function computeCritChance(
 ): number {
   let increasedSum = 0;
   let flat = 0;
+  let baseBonus = 0; // adds to base before the increased pool scales
   let moreFactor = 1;
 
   for (const m of mods) {
@@ -34,12 +35,17 @@ export function computeCritChance(
     if (!isModActive(m, assumptions)) continue;
     if (m.operator === "INCREASED") increasedSum += m.value;
     else if (m.operator === "REDUCED") increasedSum -= m.value;
-    else if (m.operator === "FLAT") flat += m.value;
-    else if (m.operator === "MORE") moreFactor *= 1 + m.value / 100;
+    else if (m.operator === "FLAT") {
+      // Mods that scale the BASE before the increased pool (e.g. Hollow
+      // Palm's intrinsic crit bonus) are tagged so the calc routes them
+      // accordingly. Plain "+1% Critical Hit Chance" mods stay flat.
+      if (m.tags.includes("base_crit_bonus")) baseBonus += m.value;
+      else flat += m.value;
+    } else if (m.operator === "MORE") moreFactor *= 1 + m.value / 100;
     else if (m.operator === "LESS") moreFactor *= 1 - m.value / 100;
   }
 
-  const raw = (baseCritPct * (1 + increasedSum / 100) + flat) * moreFactor;
+  const raw = ((baseCritPct + baseBonus) * (1 + increasedSum / 100) + flat) * moreFactor;
   return Math.min(raw, 100);
 }
 

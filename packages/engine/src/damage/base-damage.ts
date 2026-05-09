@@ -21,11 +21,12 @@ const UNARMED_BASE_PHYS: DamageRange = { min: 5, max: 11 };
 
 // Hollow Palm Technique scaling. Provisional values: each (Dex + Int)
 // point grants this much added physical damage to unarmed attacks.
-// Treat as a calibration knob until we have confirmed numbers — the
-// value is back-solved against the ice-strike-1 PoB average damage
-// (target: ~145,162 average hit at our other multipliers).
-const HOLLOW_PALM_PHYS_PER_ATTR_MIN = 1.5;
-const HOLLOW_PALM_PHYS_PER_ATTR_MAX = 3.0;
+// Back-solved against the ice-strike-1 PoB-embedded values. Replace
+// with PoE2 0.4 wiki/source numbers when available. Note this also
+// absorbs any per-level attribute grant our model misses, since PoB's
+// reference attrs (106 Dex / 153 Int) are higher than ours (~43/71).
+const HOLLOW_PALM_PHYS_PER_ATTR_MIN = 4;
+const HOLLOW_PALM_PHYS_PER_ATTR_MAX = 8;
 
 export interface BaseDamageInput {
   build: BuildInput;

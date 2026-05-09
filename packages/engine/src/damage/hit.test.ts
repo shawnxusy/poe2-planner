@@ -26,6 +26,7 @@ import { resolve as resolveMods } from "../modifiers/resolver.js";
 import { computeAttackSpeed, UNARMED_BASE_ATTACK_RATE } from "./attack-speed.js";
 import { computeCritChance, computeCritMultiplier } from "./crit.js";
 import { computeAttributes } from "./attributes.js";
+import { computeHit } from "./hit.js";
 
 const fixturesDir = resolvePath(__dirname, "../../test-fixtures");
 
@@ -87,5 +88,23 @@ describe("hit damage — ice-strike-1", () => {
     const r = resolveMods(build, game);
     const cm = computeCritMultiplier(r.mods.entries, build.assumptions);
     approx(cm, 5.29, 0.5);
+  });
+
+  // The Phase 4 ≤15% drift target — combined DPS vs PoB-embedded value.
+  // Uses calibrated Hollow Palm scaling (back-solved on this fixture).
+  it("combined DPS within 15% of PoB 449,538", () => {
+    const code = readFileSync(`${fixturesDir}/ice-strike-1.txt`, "utf-8").trim();
+    const { build } = xmlToBuildInput(parsePobXml(decodePobCode(code)));
+    const r = resolveMods(build, game);
+    const hit = computeHit({ build, game, mods: r.mods });
+    approx(hit.combined_dps, 449538, 0.15);
+  });
+
+  it("average hit within 15% of PoB 145,162", () => {
+    const code = readFileSync(`${fixturesDir}/ice-strike-1.txt`, "utf-8").trim();
+    const { build } = xmlToBuildInput(parsePobXml(decodePobCode(code)));
+    const r = resolveMods(build, game);
+    const hit = computeHit({ build, game, mods: r.mods });
+    approx(hit.average_hit, 145162, 0.15);
   });
 });
