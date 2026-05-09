@@ -32,6 +32,23 @@ export interface BuildItem {
   is_corrupted: boolean;
 }
 
+export type SkillRole = "main" | "secondary" | "aura" | "trigger" | "movement";
+
+export interface SupportGem {
+  support_id: string;
+  level: number;
+  quality: number;
+}
+
+export interface BuildSkill {
+  skill_id: string;
+  level: number;
+  quality: number;
+  role: SkillRole;
+  supports: SupportGem[];
+  links: number;
+}
+
 export interface BuildHeader {
   className?: string;
   ascendancy?: string;
@@ -67,7 +84,7 @@ export interface ImportPobResponse {
   build: {
     passives: unknown[];
     items: BuildItem[];
-    skills: unknown[];
+    skills: BuildSkill[];
   };
   warnings: Array<{ level: "info" | "warn"; message: string }>;
 }

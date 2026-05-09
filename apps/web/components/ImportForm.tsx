@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import type { ApiError, ImportPobResponse } from "../lib/types";
 import { GearPanel } from "./GearPanel";
+import { SkillPanel } from "./SkillPanel";
 import { StatsCard } from "./StatsCard";
 
 // Same-origin: hits /api/builds/import-pob on this Next.js app, which
@@ -126,6 +127,7 @@ export function ImportForm() {
             skillCount={result.build.skills.length}
           />
           <GearPanel items={result.build.items} />
+          <SkillPanel skills={result.build.skills} />
         </>
       )}
     </div>

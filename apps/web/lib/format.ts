@@ -25,3 +25,13 @@ export function fmtMulti(n: number | null | undefined): string {
   if (n > 1.5) return "+" + Math.round((n - 1) * 100) + "%";
   return n.toFixed(2) + "x";
 }
+
+// Converts PoB internal skill/support IDs to human-readable names.
+// "IceStrikePlayer" → "Ice Strike"
+// "SupportRapidAttacksPlayerTwo" → "Rapid Attacks"
+export function formatSkillId(id: string): string {
+  const name = id
+    .replace(/^Support/, "")
+    .replace(/Player(Two|Three|Four)?$/, "");
+  return name.replace(/([A-Z])/g, " $1").trim();
+}
