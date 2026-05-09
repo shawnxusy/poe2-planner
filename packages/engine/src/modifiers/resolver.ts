@@ -1,27 +1,19 @@
 // BuildInput + GameData → ModSet.
 //
-// The resolver walks every modifier source in a build and emits typed
-// ModEntries. After this point, calc paths read ONLY the ModSet — they
-// don't re-walk passive nodes, items, or supports. That separation keeps
-// the calculation deterministic and lets us audit drift by inspecting
-// the resolved ModSet alone.
+// Walks every directly-stated modifier source in a build and emits typed
+// ModEntries. The resolver is intentionally conservative: it returns ONLY
+// what's literally in the build (passives, item mod text, support gem
+// stat_sets, skill stat_sets, quest rewards). It does NOT synthesise
+// implied effects (charges, rage, keystone-derived bonuses) — those are
+// PoB's job. We use the resolver for inspection, scoring heuristics that
+// don't need stats, and (eventually) BuildInput → PoB XML serialisation.
 //
-// Sources walked, in order:
-//   1. Passives (by hash) — stat IDs from RePoE map directly via stat-mapping.ts
-//   2. Items — implicits + affixes parsed via parseModText (we already
-//      have the text body and PoB tags from the item-text parser).
-//   3. Supports — stub for now; will expand with per-support modifier
-//      ingestion in a follow-up.
-//
-// Each entry carries a ModSource pointing back to the producing node/item.
+// For authoritative DPS/EHP, see pob-bridge.
 
 import type { BuildInput, BuildItem, ItemAffix } from "@poe2/types";
 import type { GameData } from "../data/types.js";
 import { categorize } from "./categorize.js";
-import { chargeMods } from "./charges.js";
-import { hollowPalmMods } from "./hollow-palm.js";
 import { parseModText } from "./parser.js";
-import { rageMods } from "./rage.js";
 import { skillBaseMods, supportMods } from "./skill-base.js";
 import { statToMods } from "./stat-mapping.js";
 import type { ModEntry, ModSet, ModSource } from "./types.js";
@@ -47,9 +39,6 @@ export function resolve(build: BuildInput, game: GameData): ResolveResult {
   resolveItems(build, set, unresolved_item_text);
   resolveQuestRewards(build, set);
   resolveMainSkill(build, game, set);
-  for (const m of chargeMods(build.assumptions)) set.entries.push(m);
-  for (const m of rageMods(build.assumptions)) set.entries.push(m);
-  for (const m of hollowPalmMods(build)) set.entries.push(m);
 
   // Categorize once at the end so resolver-side authors don't need to
   // remember the scope rules. Returns a fresh array, so we re-attach.
