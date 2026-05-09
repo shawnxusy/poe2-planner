@@ -4,8 +4,9 @@ import { useState, useTransition } from "react";
 import type { ApiError, ImportPobResponse } from "../lib/types";
 import { StatsCard } from "./StatsCard";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
-
+// Same-origin: hits /api/builds/import-pob on this Next.js app, which
+// proxies it to the api service over the private network (see
+// app/api/[...path]/route.ts).
 export function ImportForm() {
   const [code, setCode] = useState("");
   const [result, setResult] = useState<ImportPobResponse | null>(null);
@@ -21,7 +22,7 @@ export function ImportForm() {
     setErr(null);
     startTransition(async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/builds/import-pob`, {
+        const res = await fetch(`/api/builds/import-pob`, {
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({ code: code.trim() }),
