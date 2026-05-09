@@ -17,3 +17,14 @@ export {
   type PlayerStats,
   type PobBuildHeader,
 } from "./pob/player-stats.js";
+export {
+  parsePobItemText,
+  mapPobSlot,
+  pobItemToBuildItem,
+  type ParsedPobItem,
+} from "./pob/item-text.js";
+export {
+  xmlToBuildInput,
+  type ConvertedBuild,
+  type ConvertWarning,
+} from "./pob/build-input.js";

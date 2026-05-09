@@ -31,6 +31,9 @@ const PARSER = new XMLParser({
       "MasteryEffect",
       "Override",
       "SkillSet",
+      "WeaponSet1",
+      "WeaponSet2",
+      "ModRange",
     ].includes(name),
 });
 
