@@ -71,7 +71,10 @@ const TARGET_PATTERNS: Array<[RegExp, ModTarget]> = [
   [/critical\s+(hit|strike)\s+chance/i, "crit_chance"],
   [/critical\s+(damage|hit\s+damage|strike\s+multiplier|damage\s+bonus)/i, "crit_damage"],
 
-  // Defenses
+  // Defenses — recharge-rate phrases match BEFORE the bare "energy shield"
+  // target so "increased Energy Shield Recharge Rate" doesn't fall into
+  // the energy_shield bucket.
+  [/energy\s+shield\s+recharge\s+rate/i, "energy_shield"], // close-enough; calc paths ignore recharge for now
   [/maximum\s+life/i, "life"],
   [/maximum\s+energy\s+shield/i, "energy_shield"],
   [/maximum\s+mana/i, "mana"],
@@ -81,6 +84,11 @@ const TARGET_PATTERNS: Array<[RegExp, ModTarget]> = [
   [/^mana\s*:/i, "mana"],
   [/armour(?!,)/i, "armour"],
   [/evasion(?:\s+rating)?/i, "evasion"],
+  // Bare "energy shield" / "life" / "mana" — last resort defense match.
+  // PoE2 item locals like "73% increased Energy Shield" hit here.
+  [/energy\s+shield/i, "energy_shield"],
+  [/\blife\b/i, "life"],
+  [/\bmana\b/i, "mana"],
 
   // Attributes
   [/all\s+attributes?/i, "all_attributes"],

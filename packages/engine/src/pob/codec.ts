@@ -13,7 +13,11 @@ import { Buffer } from "node:buffer";
 // desktop is similarly tolerant.
 
 export function decodePobCode(code: string): string {
-  const cleaned = code.replace(/\s+/g, "");
+  // Strip everything that isn't valid in URL-safe base64. Real codes copy-
+  // pasted from forums or chat clients sometimes pick up zero-width spaces,
+  // box-drawing chars from "view truncated…" UI, or unicode dashes that
+  // look like "-" but are actually em-dashes. Keep only [A-Za-z0-9-_=].
+  const cleaned = code.replace(/[^A-Za-z0-9\-_=]/g, "");
   const standard = cleaned.replace(/-/g, "+").replace(/_/g, "/");
   const compressed = Buffer.from(standard, "base64");
   if (compressed.length < 6) {

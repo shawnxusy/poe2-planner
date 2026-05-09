@@ -62,6 +62,7 @@ export async function loadGameData(opts?: {
       tags: row.tags ?? [],
       per_level: (raw["per_level"] as SkillRecord["per_level"]) ?? undefined,
       static: (raw["static"] as Record<string, number>) ?? undefined,
+      raw,
     };
     skills_by_metadata_id.set(row.metadata_id, rec);
   }

@@ -118,6 +118,11 @@ export interface BuildInput {
   items: BuildItem[];
   skills: BuildSkill[];
   assumptions: CalcAssumptions;
+  // Free-form mod text from PoE2 campaign quest rewards (e.g. "+5 to All
+  // Attributes", "25% increased Stun Threshold"). PoB stores these in the
+  // <Config> block as `string` Inputs prefixed `questAct…`. They feed the
+  // same modifier resolver pipeline as item mods.
+  quest_rewards?: string[];
 }
 
 // One row in a damage calc breakdown — main hit, an ailment, a triggered

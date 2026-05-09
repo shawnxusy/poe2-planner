@@ -94,6 +94,11 @@ interface PobBuildBlock {
   "@_ascendClassName"?: string;
   "@_level"?: string;
   "@_targetVersion"?: string;
+  // 1-based index into the active SkillSet's <Skill> list pointing at the
+  // build's primary active skill. PoB also sometimes sets `mainActiveSkill="1"`
+  // on the gem itself, but that flag is stale/unreliable across sets — the
+  // mainSocketGroup attribute on <Build> is canonical.
+  "@_mainSocketGroup"?: string;
 }
 
 interface PobRoot {
@@ -133,8 +138,10 @@ export function xmlToBuildInput(
 
   const passives = parsePassives(r);
   const { items, parsed_items } = parseItems(r, warnings);
-  const skills = parseSkills(r, warnings);
+  const mainSocketGroup = parseInt(r.Build?.["@_mainSocketGroup"] ?? "0", 10);
+  const skills = parseSkills(r, warnings, mainSocketGroup);
   const assumptions = parseAssumptions(r);
+  const quest_rewards = extractQuestRewardTexts(root);
 
   const build: BuildInput = {
     patch_version: patchVersion,
@@ -145,6 +152,7 @@ export function xmlToBuildInput(
     items,
     skills,
     assumptions,
+    quest_rewards,
   };
 
   return { build, warnings, parsed_items };
@@ -207,10 +215,19 @@ function parseItems(
   return { items, parsed_items };
 }
 
-function parseSkills(r: PobRoot, warnings: ConvertWarning[]): BuildSkill[] {
+function parseSkills(
+  r: PobRoot,
+  warnings: ConvertWarning[],
+  mainSocketGroup: number,
+): BuildSkill[] {
   const skillSet = r.Skills?.SkillSet?.[0];
+  const skillList = skillSet?.Skill ?? [];
   const out: BuildSkill[] = [];
-  for (const skill of skillSet?.Skill ?? []) {
+  // mainSocketGroup is 1-based and counts ALL <Skill> groups (including
+  // disabled ones) before filtering. We track the original index so the
+  // build's primary skill gets role="main" exactly once.
+  for (let groupIdx = 0; groupIdx < skillList.length; groupIdx++) {
+    const skill = skillList[groupIdx]!;
     if (skill["@_enabled"] === "false") continue;
     const gems = skill.Gem ?? [];
     if (gems.length === 0) continue;
@@ -235,8 +252,8 @@ function parseSkills(r: PobRoot, warnings: ConvertWarning[]): BuildSkill[] {
       });
     }
 
-    const mainActive = skill["@_mainActiveSkill"] === "1";
-    const role: SkillRole = mainActive ? "main" : "secondary";
+    const isMainGroup = mainSocketGroup > 0 && groupIdx + 1 === mainSocketGroup;
+    const role: SkillRole = isMainGroup ? "main" : "secondary";
     const linkCount = 1 + supports.length;
 
     out.push({
@@ -282,6 +299,27 @@ function parseAssumptions(r: PobRoot): CalcAssumptions {
     onslaught: flag("conditionOnslaught"),
     enemy_type: enemyType,
   };
+}
+
+// Quest-reward "string" Config inputs encode passive grants the campaign
+// awards (e.g. "+5 to All Attributes", "25% increased Stun Threshold").
+// These ride the same code path as item mods — return the raw text bodies
+// so the resolver can run them through parseModText().
+export function extractQuestRewardTexts(root: PobXmlRoot): string[] {
+  const r = (root.PathOfBuilding2 ?? root.PathOfBuilding) as
+    | PobRoot
+    | undefined;
+  if (!r) return [];
+  const inputs = r.Config?.Input ?? [];
+  const out: string[] = [];
+  for (const inp of inputs) {
+    const name = inp["@_name"];
+    const value = inp["@_string"];
+    if (!name || !value) continue;
+    if (!name.startsWith("questAct")) continue;
+    out.push(value);
+  }
+  return out;
 }
 
 function mapEnemyType(raw: string | undefined): EnemyType {

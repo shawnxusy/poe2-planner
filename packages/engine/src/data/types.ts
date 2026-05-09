@@ -31,6 +31,10 @@ export interface SkillRecord {
   per_level?: Record<string, Array<Record<string, number>>>;
   // Static (non-level-scaling) modifiers the skill itself adds.
   static?: Record<string, number>;
+  // Pass-through to the raw RePoE skill record so the modifier resolver
+  // can pull stat_sets / damage scaling without re-querying the DB.
+  // Shape is loosely typed because RePoE adds fields per patch.
+  raw?: Record<string, unknown>;
 }
 
 export interface ModRecord {
