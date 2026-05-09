@@ -28,6 +28,14 @@ type Partial = Omit<ModEntry, "scope">;
 // Order matters: longer/more specific phrases first so "all elemental
 // resistances" wins over "all resistances", "fire damage" over "damage", etc.
 const TARGET_PATTERNS: Array<[RegExp, ModTarget]> = [
+  // Skill-level grants — must come BEFORE attribute matchers so
+  // "to Level of all Melee Skills" doesn't match "all attributes".
+  [/level\s+of\s+all\s+melee\s+skills/i, "level_of_melee_skills"],
+  [/level\s+of\s+all\s+projectile\s+skills/i, "level_of_projectile_skills"],
+  [/level\s+of\s+all\s+spell\s+skills/i, "level_of_spell_skills"],
+  [/level\s+of\s+all\s+minion\s+skills/i, "level_of_minion_skills"],
+  [/level\s+of\s+all\s+skills/i, "level_of_all_skills"],
+
   // Resistances
   [/all\s+elemental\s+resistances?/i, "all_elemental_resistance"],
   [/all\s+resistances?/i, "all_resistance"],
@@ -35,7 +43,8 @@ const TARGET_PATTERNS: Array<[RegExp, ModTarget]> = [
   [/maximum\s+cold\s+resistance/i, "max_cold_resistance"],
   [/maximum\s+lightning\s+resistance/i, "max_lightning_resistance"],
   [/maximum\s+chaos\s+resistance/i, "max_chaos_resistance"],
-  [/fire\s+resistance/i, "fire_resistance"],
+  [/lightning\s+and\s+chaos\s+resistances?/i, "all_resistance"],
+  [/fire\s+(and\s+cold\s+)?resistances?/i, "fire_resistance"],
   [/cold\s+resistance/i, "cold_resistance"],
   [/lightning\s+resistance/i, "lightning_resistance"],
   [/chaos\s+resistance/i, "chaos_resistance"],
@@ -87,9 +96,19 @@ const TARGET_PATTERNS: Array<[RegExp, ModTarget]> = [
 
   // Ailment-flavored damage targets
   [/magnitude\s+of\s+damaging\s+ailments/i, "ailment_magnitude"],
-  [/poison\s+damage/i, "poison_damage"],
+  [/magnitude\s+of\s+non[- ]damaging\s+ailments/i, "non_damaging_ailment_magnitude"],
+  [/duration\s+of\s+elemental\s+ailments/i, "elemental_ailment_duration"],
+  [/duration\s+of\s+damaging\s+ailments/i, "ailment_duration"],
+  [/duration\s+of\s+ailments/i, "ailment_duration"],
+  [/poison\s+(damage|magnitude)/i, "poison_damage"],
   [/ignite\s+damage/i, "ignite_damage"],
   [/bleed(?:ing)?\s+damage/i, "bleed_damage"],
+
+  // PoE2 mechanics
+  [/deflection\s+rating/i, "deflection_rating"],
+  [/cooldown\s+recovery\s+rate/i, "cooldown_recovery_rate"],
+  [/cost\s+efficiency/i, "cost_efficiency"],
+  [/projectile\s+speed/i, "projectile_speed"],
 
   // Generic "damage" — must come last so specific types win.
   [/\bdamage\b/i, "any_damage"],
@@ -130,6 +149,87 @@ function pickValueFromText(text: string): number | null {
 type Handler = (ctx: ParseContext) => Partial[] | null;
 
 const HANDLERS: Handler[] = [
+  // "Bonded: <inner mod>" — PoE2 mechanic where some affixes only apply
+  // when "bonded" (e.g., a runeword condition). Strip the prefix and
+  // recurse on the inner text. We treat the bonded result as conditional
+  // by tagging "bonded" so the resolver can later gate it on bond state.
+  (ctx) => {
+    const m = ctx.text.match(/^Bonded:\s*(.+)$/i);
+    if (!m) return null;
+    const innerCtx: ParseContext = {
+      text: m[1]!,
+      tags: [...ctx.tags, "bonded"],
+      source: ctx.source,
+    };
+    for (const h of HANDLERS) {
+      if (h === HANDLERS[0]) continue; // skip self
+      const out = h(innerCtx);
+      if (out && out.length > 0) return out;
+    }
+    return null;
+  },
+
+  // "+N to Level of all <Type> Skills" — skill level grants.
+  (ctx) => {
+    const m = ctx.text.match(
+      /^([+-]?\d+(?:\.\d+)?)\s+to\s+Level\s+of\s+all\s+(Melee|Projectile|Spell|Minion)?\s*Skills?/i,
+    );
+    if (!m) return null;
+    const value = Number.parseFloat(m[1]!);
+    const kind = (m[2] ?? "").toLowerCase();
+    const target =
+      kind === "melee" ? "level_of_melee_skills" :
+      kind === "projectile" ? "level_of_projectile_skills" :
+      kind === "spell" ? "level_of_spell_skills" :
+      kind === "minion" ? "level_of_minion_skills" :
+      "level_of_all_skills";
+    return [{
+      operator: "FLAT" as ModOperator,
+      target: target as ModTarget,
+      value,
+      tags: ctx.tags,
+      source_text: ctx.text,
+      source: ctx.source,
+    }];
+  },
+
+  // "X% chance to <Effect> on Hit" / "on Critical Hit"
+  (ctx) => {
+    const m = ctx.text.match(
+      /^(\d+(?:\.\d+)?)%\s+chance\s+to\s+(Poison|Ignite|Bleed|Freeze|Shock|Chill|Electrocute)(?:\s+(on\s+Hit|on\s+Critical\s+Hit|on\s+Hit\s+with\s+\w+))?/i,
+    );
+    if (!m) return null;
+    const eff = m[2]!.toLowerCase();
+    const target =
+      eff === "poison" ? "chance_to_poison_on_hit" :
+      eff === "ignite" ? "chance_to_ignite_on_hit" :
+      eff === "bleed" ? "chance_to_bleed_on_hit" :
+      eff === "freeze" ? "chance_to_freeze" :
+      "chance_to_shock";
+    return [{
+      operator: "CHANCE" as ModOperator,
+      target: target as ModTarget,
+      value: Number.parseFloat(m[1]!),
+      tags: ctx.tags,
+      source_text: ctx.text,
+      source: ctx.source,
+    }];
+  },
+
+  // Triggered effects: "When you …", "On <event>, …".
+  (ctx) => {
+    const m = ctx.text.match(/^(When\s+you|On\s+(?:Hit|Kill|Crit|Block))\b/i);
+    if (!m) return null;
+    return [{
+      operator: "TRIGGER" as ModOperator,
+      target: "any_damage" as ModTarget,
+      value: 0,
+      tags: ctx.tags,
+      source_text: ctx.text,
+      source: ctx.source,
+    }];
+  },
+
   // "Adds N to M Z damage [to Attacks/Spells]"
   (ctx) => {
     const m = ctx.text.match(

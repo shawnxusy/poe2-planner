@@ -167,18 +167,83 @@ describe("parseModText — crit and speed", () => {
   });
 });
 
-describe("parseModText — UNKNOWN fallback", () => {
-  it("returns an UNKNOWN entry for unmatched text but never crashes", () => {
+describe("parseModText — Bonded prefix", () => {
+  it("strips Bonded: and recurses on the inner mod, tagging it 'bonded'", () => {
+    const [m] = parseModText("Bonded: 15% increased Cooldown Recovery Rate", src());
+    expect(m?.operator).toBe("INCREASED");
+    expect(m?.target).toBe("cooldown_recovery_rate");
+    expect(m?.value).toBe(15);
+    expect(m?.tags).toContain("bonded");
+  });
+
+  it("Bonded: <flat life>", () => {
+    const [m] = parseModText("Bonded: +20 to maximum Life", src());
+    expect(m?.operator).toBe("FLAT");
+    expect(m?.target).toBe("life");
+    expect(m?.tags).toContain("bonded");
+  });
+});
+
+describe("parseModText — skill-level grants", () => {
+  it("parses '+N to Level of all Melee Skills'", () => {
+    const [m] = parseModText("+7 to Level of all Melee Skills", src());
+    expect(m).toMatchObject({
+      operator: "FLAT",
+      target: "level_of_melee_skills",
+      value: 7,
+    });
+  });
+
+  it("parses '+N to Level of all Projectile Skills'", () => {
+    const [m] = parseModText("+3 to Level of all Projectile Skills", src());
+    expect(m?.target).toBe("level_of_projectile_skills");
+  });
+});
+
+describe("parseModText — chance-on-X", () => {
+  it("parses 'X% chance to Poison on Hit'", () => {
+    const [m] = parseModText("22% chance to Poison on Hit", src());
+    expect(m).toMatchObject({
+      operator: "CHANCE",
+      target: "chance_to_poison_on_hit",
+      value: 22,
+    });
+  });
+
+  it("parses 'X% chance to Ignite'", () => {
+    const [m] = parseModText("18% chance to Ignite", src());
+    expect(m?.operator).toBe("CHANCE");
+    expect(m?.target).toBe("chance_to_ignite_on_hit");
+  });
+});
+
+describe("parseModText — triggered effects", () => {
+  it("emits TRIGGER for 'When you kill …' lines", () => {
     const [m] = parseModText(
       "When you kill a Rare monster, you gain its Modifiers for 60 seconds",
       src(),
     );
-    expect(m?.operator).toBe("UNKNOWN");
+    expect(m?.operator).toBe("TRIGGER");
     expect(m?.source_text).toContain("Rare monster");
   });
 
+  it("emits TRIGGER for 'On Hit' lines", () => {
+    const [m] = parseModText("On Hit, gain Power Charge", src());
+    expect(m?.operator).toBe("TRIGGER");
+  });
+});
+
+describe("parseModText — empty / unknown", () => {
   it("returns empty array for empty text", () => {
     expect(parseModText("", src())).toEqual([]);
     expect(parseModText("   ", src())).toEqual([]);
+  });
+
+  it("returns UNKNOWN for genuinely-unrecognised text", () => {
+    const [m] = parseModText(
+      "Some completely unrecognised text format here",
+      src(),
+    );
+    expect(m?.operator).toBe("UNKNOWN");
   });
 });

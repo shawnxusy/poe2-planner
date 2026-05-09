@@ -63,10 +63,31 @@ export type ModTarget =
   | "spirit"
   // Ailment-specific
   | "ailment_magnitude"
+  | "non_damaging_ailment_magnitude"
+  | "ailment_duration"
+  | "elemental_ailment_duration"
   | "poison_damage"
   | "ignite_damage"
   | "bleed_damage"
-  | "skill_speed";
+  | "skill_speed"
+  // Skill-level grants
+  | "level_of_melee_skills"
+  | "level_of_projectile_skills"
+  | "level_of_spell_skills"
+  | "level_of_minion_skills"
+  | "level_of_all_skills"
+  // PoE2-specific defenses
+  | "deflection_rating"
+  // Chance-on-X
+  | "chance_to_poison_on_hit"
+  | "chance_to_ignite_on_hit"
+  | "chance_to_bleed_on_hit"
+  | "chance_to_freeze"
+  | "chance_to_shock"
+  // Cooldown / cost
+  | "cooldown_recovery_rate"
+  | "cost_efficiency"
+  | "projectile_speed";
 
 export type ModOperator =
   // X% increased Y → ADDITIVE-INCREASED pool
@@ -81,8 +102,13 @@ export type ModOperator =
   | "FLAT"
   // Adds N to M Z damage → FLAT damage range (lo, hi captured separately)
   | "FLAT_RANGE"
+  // "X% chance to Y on Hit" — calc path applies the chance per hit.
+  | "CHANCE"
   // Override a value (rare; e.g., "Critical Strike Chance is 100%")
   | "OVERRIDE"
+  // Triggered effect: "When you kill X, gain Y…". The categorizer keeps
+  // these for build summaries but no damage path consumes them yet.
+  | "TRIGGER"
   // Unknown/unmatched — kept for diagnostics, ignored by calc paths
   | "UNKNOWN";
 

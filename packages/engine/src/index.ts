@@ -28,3 +28,30 @@ export {
   type ConvertedBuild,
   type ConvertWarning,
 } from "./pob/build-input.js";
+
+// Modifier system
+export {
+  parseModText,
+} from "./modifiers/parser.js";
+export {
+  categorize,
+  selectMods,
+} from "./modifiers/categorize.js";
+export type {
+  ModEntry,
+  ModOperator,
+  ModScope,
+  ModSet,
+  ModSource,
+  ModTarget,
+} from "./modifiers/types.js";
+export { emptyModSet, pushMod } from "./modifiers/types.js";
+
+// Game data loader (DB → in-memory snapshot)
+export { loadGameData } from "./data/load.js";
+export type {
+  GameData,
+  ModRecord,
+  PassiveRecord,
+  SkillRecord,
+} from "./data/types.js";
