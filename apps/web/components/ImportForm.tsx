@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import type { ApiError, ImportPobResponse } from "../lib/types";
+import { GearPanel } from "./GearPanel";
 import { StatsCard } from "./StatsCard";
 
 // Same-origin: hits /api/builds/import-pob on this Next.js app, which
@@ -116,13 +117,16 @@ export function ImportForm() {
       </form>
 
       {result && (
-        <StatsCard
-          header={result.header}
-          stats={result.stats}
-          passiveCount={result.build.passives.length}
-          itemCount={result.build.items.length}
-          skillCount={result.build.skills.length}
-        />
+        <>
+          <StatsCard
+            header={result.header}
+            stats={result.stats}
+            passiveCount={result.build.passives.length}
+            itemCount={result.build.items.length}
+            skillCount={result.build.skills.length}
+          />
+          <GearPanel items={result.build.items} />
+        </>
       )}
     </div>
   );

@@ -1,6 +1,37 @@
 // Wire types for /api/builds/import-pob. Mirrors the engine surface
 // without taking a hard dependency on @poe2/engine on the client.
 
+export type ItemSlot =
+  | "weapon"
+  | "offhand"
+  | "helmet"
+  | "body_armour"
+  | "gloves"
+  | "boots"
+  | "amulet"
+  | "ring_left"
+  | "ring_right"
+  | "belt"
+  | "jewel";
+
+export type ItemRarity = "normal" | "magic" | "rare" | "unique";
+
+export interface ItemAffix {
+  mod_id: string | null;
+  text: string;
+  values: number[];
+}
+
+export interface BuildItem {
+  slot: ItemSlot;
+  base_item: string;
+  rarity: ItemRarity;
+  unique_name: string | null;
+  implicits: ItemAffix[];
+  affixes: ItemAffix[];
+  is_corrupted: boolean;
+}
+
 export interface BuildHeader {
   className?: string;
   ascendancy?: string;
@@ -35,7 +66,7 @@ export interface ImportPobResponse {
   raw_player_stats: Record<string, number>;
   build: {
     passives: unknown[];
-    items: unknown[];
+    items: BuildItem[];
     skills: unknown[];
   };
   warnings: Array<{ level: "info" | "warn"; message: string }>;
