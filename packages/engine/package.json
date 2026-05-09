@@ -14,9 +14,11 @@
   },
   "dependencies": {
     "@poe2/types": "workspace:*",
-    "fast-xml-parser": "^4.5.1"
+    "fast-xml-parser": "^4.5.1",
+    "pako": "^2.1.0"
   },
   "devDependencies": {
+    "@types/pako": "^2.0.4",
     "typescript": "^5.7.2",
     "vitest": "^2.1.8"
   }

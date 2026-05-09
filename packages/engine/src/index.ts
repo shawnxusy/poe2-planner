@@ -9,3 +9,11 @@
 
 export { decodePobCode, encodePobCode } from "./pob/codec.js";
 export { parsePobXml, type PobXmlRoot } from "./pob/xml.js";
+export {
+  derivedStats,
+  extractBuildHeader,
+  extractPlayerStats,
+  type DerivedBuildStats,
+  type PlayerStats,
+  type PobBuildHeader,
+} from "./pob/player-stats.js";
