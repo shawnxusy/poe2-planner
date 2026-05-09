@@ -7,7 +7,8 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "start": "tsx src/server.ts",
-    "dev": "tsx watch src/server.ts"
+    "dev": "tsx watch src/server.ts",
+    "test": "vitest run"
   },
   "dependencies": {
     "@poe2/db": "workspace:*",
@@ -15,9 +16,11 @@
     "@poe2/types": "workspace:*",
     "fastify": "^5.2.0",
     "@fastify/cors": "^10.0.2",
+    "dotenv": "^16.4.7",
     "tsx": "^4.19.2"
   },
   "devDependencies": {
-    "typescript": "^5.7.2"
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
   }
 }
