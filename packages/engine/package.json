@@ -10,7 +10,8 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "regen-config-manifest": "tsx scripts/regen-config-manifest.ts"
   },
   "dependencies": {
     "@poe2/db": "workspace:*",

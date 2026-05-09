@@ -63,6 +63,22 @@ export type {
 export { PobBridge } from "./pob-bridge/index.js";
 export type { BridgeOptions } from "./pob-bridge/index.js";
 
+// Vendored PoB Configuration manifest (codegen'd from PoB-PoE2's
+// Modules/ConfigOptions.lua — 544 options). Use this when constructing
+// a "scoring profile" of Config Inputs to inject into a build's XML
+// before sending it through the bridge.
+export {
+  CONFIG_OPTIONS_MANIFEST,
+  configInputsToXml,
+} from "./pob-bridge/config-options.js";
+export type {
+  ConfigInputs,
+  ConfigInputVar,
+  ConfigOptionMeta,
+  ConfigOptionListItem,
+} from "./pob-bridge/config-options.js";
+export { injectConfigInputs } from "./pob-bridge/inject-config.js";
+
 // Top-level entrypoint
 export { calculate } from "./calculate.js";
 export type { CalculateOptions } from "./calculate.js";
