@@ -56,10 +56,18 @@ export type {
   SkillRecord,
 } from "./data/types.js";
 
-// Resolver + calc paths
+// Resolver (still useful for AI build construction + parsing)
 export { resolve } from "./modifiers/resolver.js";
 export type { ResolveResult } from "./modifiers/resolver.js";
+
+// Experimental in-process calc (approximate, fast — see calibration memo)
 export { computeHit } from "./damage/hit.js";
 export { computeDefense } from "./defense/index.js";
+
+// Authoritative PoB headless backend (default)
+export { PobBridge } from "./pob-bridge/index.js";
+export type { BridgeOptions } from "./pob-bridge/index.js";
+
+// Top-level entrypoint — defaults to PoB backend
 export { calculate } from "./calculate.js";
 export type { CalculateOptions } from "./calculate.js";
