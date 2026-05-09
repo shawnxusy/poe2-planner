@@ -11,6 +11,8 @@
 // Cap rules: crit chance is hard-capped at 100%; crit multiplier is
 // soft-capped (you can stack arbitrarily high).
 
+import type { CalcAssumptions } from "@poe2/types";
+import { isModActive } from "../modifiers/conditions.js";
 import type { ModEntry } from "../modifiers/types.js";
 
 // Default base crit if none is found on the weapon. PoE2 uses 5% as the
@@ -20,6 +22,7 @@ export const DEFAULT_BASE_CRIT = 5;
 export function computeCritChance(
   baseCritPct: number,
   mods: ModEntry[],
+  assumptions: CalcAssumptions,
 ): number {
   let increasedSum = 0;
   let flat = 0;
@@ -28,6 +31,7 @@ export function computeCritChance(
   for (const m of mods) {
     if (m.target !== "crit_chance") continue;
     if (m.scope === "minion" || m.scope === "ailment") continue;
+    if (!isModActive(m, assumptions)) continue;
     if (m.operator === "INCREASED") increasedSum += m.value;
     else if (m.operator === "REDUCED") increasedSum -= m.value;
     else if (m.operator === "FLAT") flat += m.value;
@@ -41,12 +45,16 @@ export function computeCritChance(
 
 // Returns the multiplier as a factor (1.5, 5.29, etc.). PoB convention:
 // 100 = 2.0× damage on crit; the bonus pool starts at +100% by default.
-export function computeCritMultiplier(mods: ModEntry[]): number {
+export function computeCritMultiplier(
+  mods: ModEntry[],
+  assumptions: CalcAssumptions,
+): number {
   // Base bonus over normal damage. PoE2 default is 100% (i.e. crits do 2×).
   let bonus = 100;
   for (const m of mods) {
     if (m.target !== "crit_damage") continue;
     if (m.scope === "minion" || m.scope === "ailment") continue;
+    if (!isModActive(m, assumptions)) continue;
     // Both INCREASED and FLAT entries on crit_damage are additive in PoB
     // (PoE doesn't use a separate "increased crit multiplier" pool).
     if (m.operator === "INCREASED" || m.operator === "FLAT") bonus += m.value;

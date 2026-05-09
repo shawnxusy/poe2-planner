@@ -24,7 +24,10 @@ export type ItemSlot =
   | "amulet"
   | "ring_left"
   | "ring_right"
-  | "belt";
+  | "belt"
+  // Catch-all for jewels socketed into passive tree nodes. PoE2 has multiple
+  // jewel-socket mechanics; we don't yet distinguish by node hash.
+  | "jewel";
 
 export type ItemRarity = "normal" | "magic" | "rare" | "unique";
 
@@ -62,6 +65,17 @@ export interface CalcAssumptions {
   // Pinned by default to PoE2's standard endgame encounter resists.
   // Engine still honours per-skill penetration/exposure on top.
   enemy_resistances: Resistances;
+  // Active condition tags ("after_crit", "vs_frozen", etc.) used to gate
+  // conditional modifiers. Populated from PoB's Config block; calc paths
+  // that see a "conditional" tag check this set before applying the mod.
+  conditions: string[];
+  // Active herald list (lowercase, e.g. "herald_of_ice"). Heralds appear
+  // in passive scaling like "X% increased Cold Damage while affected by
+  // Herald of Ice" — calc paths gate those mods on this set.
+  heralds: string[];
+  // Active rage stack count when present. Rage scales attack damage in
+  // PoE2 and is set via PoB's `multiplierRage` config input.
+  rage: number;
 }
 
 export interface SupportGem {
@@ -195,4 +209,7 @@ export const DEFAULT_ASSUMPTIONS: CalcAssumptions = {
   onslaught: false,
   enemy_type: "boss",
   enemy_resistances: DEFAULT_ENEMY_RESISTANCES,
+  conditions: [],
+  heralds: [],
+  rage: 0,
 };

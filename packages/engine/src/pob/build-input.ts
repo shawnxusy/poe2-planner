@@ -74,12 +74,21 @@ interface PobItem {
   "#text"?: string;
 }
 
+interface PobSocket {
+  "@_nodeId"?: string;
+  "@_itemId"?: string;
+}
+
 interface PobSpec {
   "@_nodes"?: string;
   "@_classId"?: string;
   "@_ascendClassId"?: string;
   "@_treeVersion"?: string;
   "@_ascendancyInternalId"?: string;
+  // Jewel sockets — each <Socket> binds a passive node hash to an item id.
+  // The referenced items live in the same Items list as gear; we route them
+  // to a "jewel" slot so the resolver picks up their mods.
+  Sockets?: { Socket?: PobSocket[] };
 }
 
 interface PobConfigInput {
@@ -87,6 +96,12 @@ interface PobConfigInput {
   "@_string"?: string;
   "@_number"?: string;
   "@_boolean"?: string;
+}
+
+interface PobBuffs {
+  "@_combatList"?: string;
+  "@_buffList"?: string;
+  "@_curseList"?: string;
 }
 
 interface PobBuildBlock {
@@ -99,6 +114,12 @@ interface PobBuildBlock {
   // on the gem itself, but that flag is stale/unreliable across sets — the
   // mainSocketGroup attribute on <Build> is canonical.
   "@_mainSocketGroup"?: string;
+  Buffs?: PobBuffs;
+}
+
+interface PobConfigSet {
+  "@_id"?: string;
+  Input?: PobConfigInput[];
 }
 
 interface PobRoot {
@@ -106,7 +127,14 @@ interface PobRoot {
   Tree?: { Spec?: PobSpec[] };
   Items?: { Item?: PobItem[]; ItemSet?: PobItemSet[] };
   Skills?: { SkillSet?: PobSkillSet[] };
-  Config?: { Input?: PobConfigInput[] };
+  // PoB-PoE2 nests inputs inside <Config><ConfigSet>...</ConfigSet></Config>.
+  // ConfigSet may be a single object (one set) or an array (multiple sets,
+  // with `@_activeConfigSet` selecting which one is active).
+  Config?: {
+    Input?: PobConfigInput[]; // legacy / flat layout
+    ConfigSet?: PobConfigSet | PobConfigSet[];
+    "@_activeConfigSet"?: string;
+  };
 }
 
 export interface ConvertWarning {
@@ -138,9 +166,14 @@ export function xmlToBuildInput(
 
   const passives = parsePassives(r);
   const { items, parsed_items } = parseItems(r, warnings);
+  appendJewels(r, parsed_items, items, warnings);
   const mainSocketGroup = parseInt(r.Build?.["@_mainSocketGroup"] ?? "0", 10);
   const skills = parseSkills(r, warnings, mainSocketGroup);
-  const assumptions = parseAssumptions(r);
+  const buffList = (r.Build?.Buffs?.["@_buffList"] ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const assumptions = parseAssumptions(r, buffList);
   const quest_rewards = extractQuestRewardTexts(root);
 
   const build: BuildInput = {
@@ -215,6 +248,31 @@ function parseItems(
   return { items, parsed_items };
 }
 
+// Walk the active tree spec's <Sockets> block and fold each referenced
+// item into the build's items list as a "jewel". The Item bodies are
+// already parsed; we just need to remap them to the right slot.
+function appendJewels(
+  r: PobRoot,
+  parsed_items: Map<string, ParsedPobItem>,
+  items: BuildItem[],
+  warnings: ConvertWarning[],
+): void {
+  const sockets = r.Tree?.Spec?.[0]?.Sockets?.Socket ?? [];
+  for (const socket of sockets) {
+    const itemId = socket["@_itemId"];
+    if (!itemId || itemId === "0") continue;
+    const parsed = parsed_items.get(itemId);
+    if (!parsed) {
+      warnings.push({
+        level: "warn",
+        message: `appendJewels: socket ${socket["@_nodeId"]} references missing item id=${itemId}`,
+      });
+      continue;
+    }
+    items.push(pobItemToBuildItem(parsed, "jewel"));
+  }
+}
+
 function parseSkills(
   r: PobRoot,
   warnings: ConvertWarning[],
@@ -274,8 +332,8 @@ function parseSkills(
   return out;
 }
 
-function parseAssumptions(r: PobRoot): CalcAssumptions {
-  const inputs = r.Config?.Input ?? [];
+function parseAssumptions(r: PobRoot, buffList: string[]): CalcAssumptions {
+  const inputs = collectConfigInputs(r);
   const byName = new Map<string, PobConfigInput>();
   for (const inp of inputs) {
     const n = inp["@_name"];
@@ -290,6 +348,45 @@ function parseAssumptions(r: PobRoot): CalcAssumptions {
 
   const enemyType = mapEnemyType(byName.get("enemyIsBoss")?.["@_string"]);
 
+  // Map PoB's `condition*` boolean inputs onto our flat tag set used by
+  // damage paths to gate "conditional" mods. Each entry is (PoB key →
+  // our tag). PoB has many more; we add as we encounter them.
+  const CONDITION_MAP: Record<string, string> = {
+    conditionCritRecently: "after_crit",
+    conditionCritInPast8Sec: "after_crit",
+    conditionEnemyShocked: "enemy_shocked",
+    conditionShockedEnemyRecently: "enemy_shocked",
+    conditionEnemyChilled: "enemy_chilled",
+    conditionChilledEnemyRecently: "enemy_chilled",
+    conditionEnemyFrozen: "vs_frozen",
+    conditionFullLife: "full_life",
+    conditionLowLife: "low_life",
+    conditionEnemyRareOrUnique: "vs_rare_or_unique",
+  };
+  const conditions: string[] = [];
+  for (const [pobKey, tag] of Object.entries(CONDITION_MAP)) {
+    if (flag(pobKey) && !conditions.includes(tag)) conditions.push(tag);
+  }
+
+  // Heralds — populate from <Buffs buffList="…"> string. PoB lists active
+  // herald skills there; we normalise them to underscored lowercase tags
+  // matched by the conditional stat-mapping table.
+  const HERALD_MAP: Record<string, string> = {
+    "Herald of Ice": "herald_of_ice",
+    "Herald of Ash": "herald_of_ash",
+    "Herald of Thunder": "herald_of_thunder",
+  };
+  const heralds: string[] = [];
+  for (const buff of buffList) {
+    const trimmed = buff.trim();
+    const tag = HERALD_MAP[trimmed];
+    if (tag && !heralds.includes(tag)) heralds.push(tag);
+    // Generic "herald_active" fires whenever any herald is up.
+    if (HERALD_MAP[trimmed] && !heralds.includes("herald_active")) {
+      heralds.push("herald_active");
+    }
+  }
+
   return {
     ...DEFAULT_ASSUMPTIONS,
     frenzy_charges: num("useFrenzyCharges") ? 3 : 0, // PoB uses booleans for max charges.
@@ -298,7 +395,27 @@ function parseAssumptions(r: PobRoot): CalcAssumptions {
     flasks_active: flag("conditionFlaskActive") || flag("conditionUsingFlask"),
     onslaught: flag("conditionOnslaught"),
     enemy_type: enemyType,
+    conditions,
+    heralds,
+    rage: num("multiplierRage"),
   };
+}
+
+// Walk both legacy (Config.Input direct) and PoB-PoE2's nested
+// (Config.ConfigSet[].Input) layouts and return all Config inputs from
+// the active set. The active set is `@_activeConfigSet` (1-based) when
+// multiple sets are present.
+function collectConfigInputs(r: PobRoot): PobConfigInput[] {
+  const out: PobConfigInput[] = [];
+  if (r.Config?.Input) out.push(...r.Config.Input);
+  const configSets = r.Config?.ConfigSet;
+  if (!configSets) return out;
+
+  const setsArr = Array.isArray(configSets) ? configSets : [configSets];
+  const activeIdx = parseInt(r.Config?.["@_activeConfigSet"] ?? "1", 10) - 1;
+  const active = setsArr[activeIdx] ?? setsArr[0];
+  if (active?.Input) out.push(...active.Input);
+  return out;
 }
 
 // Quest-reward "string" Config inputs encode passive grants the campaign
@@ -310,9 +427,8 @@ export function extractQuestRewardTexts(root: PobXmlRoot): string[] {
     | PobRoot
     | undefined;
   if (!r) return [];
-  const inputs = r.Config?.Input ?? [];
   const out: string[] = [];
-  for (const inp of inputs) {
+  for (const inp of collectConfigInputs(r)) {
     const name = inp["@_name"];
     const value = inp["@_string"];
     if (!name || !value) continue;

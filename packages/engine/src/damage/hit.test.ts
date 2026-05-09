@@ -65,18 +65,18 @@ describe("hit damage — ice-strike-1", () => {
     const code = readFileSync(`${fixturesDir}/ice-strike-1.txt`, "utf-8").trim();
     const { build } = xmlToBuildInput(parsePobXml(decodePobCode(code)));
     const r = resolveMods(build, game);
-    const speed = computeAttackSpeed(UNARMED_BASE_ATTACK_RATE, r.mods.entries);
+    const speed = computeAttackSpeed(UNARMED_BASE_ATTACK_RATE, r.mods.entries, build.assumptions);
     approx(speed, 3.0968, 0.1);
   });
 
   // KNOWN GAP: crit chance is currently ~20% from passives alone vs PoB's
-  // 75.45%. The missing ~55 pp comes from supports + Power Charges +
-  // possibly Hollow Palm scaling + jewel sockets — none modeled yet.
+  // 75.45%. The missing ~55 pp likely comes from Hollow Palm scaling
+  // (per-attribute crit) — not yet modeled. Asserts present-day output.
   it("crit chance produces a positive number (regression guard)", () => {
     const code = readFileSync(`${fixturesDir}/ice-strike-1.txt`, "utf-8").trim();
     const { build } = xmlToBuildInput(parsePobXml(decodePobCode(code)));
     const r = resolveMods(build, game);
-    const crit = computeCritChance(5, r.mods.entries);
+    const crit = computeCritChance(5, r.mods.entries, build.assumptions);
     expect(crit).toBeGreaterThan(0);
     expect(crit).toBeLessThanOrEqual(100);
   });
@@ -85,7 +85,7 @@ describe("hit damage — ice-strike-1", () => {
     const code = readFileSync(`${fixturesDir}/ice-strike-1.txt`, "utf-8").trim();
     const { build } = xmlToBuildInput(parsePobXml(decodePobCode(code)));
     const r = resolveMods(build, game);
-    const cm = computeCritMultiplier(r.mods.entries);
+    const cm = computeCritMultiplier(r.mods.entries, build.assumptions);
     approx(cm, 5.29, 0.5);
   });
 });
