@@ -8,6 +8,20 @@
       "when": 1778273983777,
       "tag": "0000_melted_santa_claus",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1778394916096,
+      "tag": "0001_sudden_puck",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1778397179722,
+      "tag": "0002_silky_dreaming_celestial",
+      "breakpoints": true
     }
   ]
 }

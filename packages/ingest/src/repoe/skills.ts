@@ -42,6 +42,18 @@ interface RepoeSkill {
   [key: string]: unknown;
 }
 
+function extractSpiritCost(skill: RepoeSkill): number | null {
+  const reservations = (skill.static as Record<string, unknown> | undefined)
+    ?.reservations as Record<string, unknown> | undefined;
+  const spirit = reservations?.spirit;
+  if (typeof spirit === "number") return spirit;
+  if (typeof spirit === "string") {
+    const n = parseInt(spirit, 10);
+    return isNaN(n) ? null : n;
+  }
+  return null;
+}
+
 function deriveName(metadataId: string, skill: RepoeSkill): string {
   const display = skill.active_skill?.display_name;
   if (display) return display;
@@ -74,6 +86,8 @@ export async function ingestSkills(patchVersionId: number): Promise<number> {
     gem_type: skill.is_support ? "support" : "active",
     tags: skill.active_skill?.types ?? [],
     damage_effectiveness: null,
+    // Spirit cost lives at static.reservations.spirit for persistent skills.
+    spirit_cost: extractSpiritCost(skill),
     base_stats: (skill.static ?? {}) as Record<string, unknown>,
     release_state: null,
     raw: skill as unknown as Record<string, unknown>,
@@ -91,6 +105,7 @@ export async function ingestSkills(patchVersionId: number): Promise<number> {
           name: sql`excluded.name`,
           gem_type: sql`excluded.gem_type`,
           tags: sql`excluded.tags`,
+          spirit_cost: sql`excluded.spirit_cost`,
           base_stats: sql`excluded.base_stats`,
           raw: sql`excluded.raw`,
         },

@@ -1,9 +1,17 @@
+import Link from "next/link";
 import { ImportForm } from "../components/ImportForm";
 
 export default function HomePage() {
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-4xl flex-col px-6 py-16 sm:py-24">
       <header className="mb-12 sm:mb-16">
+        <div className="mb-6 flex items-center gap-4 text-[11px] uppercase tracking-[0.18em] text-ink-500">
+          <span className="text-gold-500/70">Build browser</span>
+          <span className="text-ink-700">|</span>
+          <Link href="/explore" className="hover:text-ink-100 transition">
+            Explore →
+          </Link>
+        </div>
         <div className="flex items-center gap-3 text-[11px] uppercase tracking-[0.22em] text-ink-500">
           <span className="inline-block h-px w-8 bg-gold-500/60" />
           PoE2 Planner

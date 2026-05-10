@@ -16,6 +16,10 @@ const { ingestUniques } = await import("./repoe/uniques.js");
 const { ingestStatTranslations } = await import("./repoe/stat-translations.js");
 const { ingestPassiveTree } = await import("./repoe/passive-tree.js");
 const { ingestPobUniques } = await import("./pob/uniques.js");
+const { ingestAscendancyNodes } = await import("./pob/ascendancy-nodes.js");
+const { ingestTreeNodes } = await import("./pob/tree-nodes.js");
+const { seedCharms } = await import("./data/charms-seed.js");
+const { seedAugments } = await import("./data/augments-seed.js");
 
 // Each step throws on failure; main() doesn't catch in between. Per the
 // project decision: fail-fast on first error, no partial-success retries.
@@ -38,6 +42,13 @@ async function main() {
   await ingestPassiveTree(patchId);
   // PoB Lua enrichment: depends on uniques + base_items being populated.
   await ingestPobUniques(patchId);
+  // PoB tree ascendancy nodes (not in RePoE-Fork).
+  await ingestAscendancyNodes(patchId);
+  // Backfill real (x, y) and connections[] from PoB tree.lua for all nodes.
+  await ingestTreeNodes(patchId);
+  // Static game data not in RePoE: charms and augments (formerly runes).
+  await seedCharms(patchId);
+  await seedAugments(patchId);
 
   info("ingest done");
   process.exit(0);

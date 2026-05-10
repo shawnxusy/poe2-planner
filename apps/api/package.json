@@ -11,12 +11,14 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.95.1",
+    "@fastify/cors": "^10.0.2",
     "@poe2/db": "workspace:*",
     "@poe2/engine": "workspace:*",
     "@poe2/types": "workspace:*",
-    "fastify": "^5.2.0",
-    "@fastify/cors": "^10.0.2",
     "dotenv": "^16.4.7",
+    "drizzle-orm": "^0.38.3",
+    "fastify": "^5.2.0",
     "tsx": "^4.19.2"
   },
   "devDependencies": {

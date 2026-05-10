@@ -178,6 +178,9 @@ export const skills = pgTable(
     // damage_effectiveness from RePoE-Fork — used to seed ailment damage from
     // the source hit. Conflating this across gems is the #1 source of DoT drift.
     damage_effectiveness: numeric("damage_effectiveness", { precision: 6, scale: 3 }),
+    // Spirit reserved when the skill is active (auras, heralds, persistent buffs).
+    // Null for skills that do not cost Spirit.  Source: raw->'static'->'reservations'->>'spirit'.
+    spirit_cost: integer("spirit_cost"),
     base_stats: jsonb("base_stats").notNull().default({}),
     release_state: varchar("release_state", { length: 32 }),
     raw: jsonb("raw").notNull().default({}),
@@ -205,6 +208,9 @@ export const passives = pgTable(
     stats: text("stats").array().notNull().default([]),
     x: integer("x").notNull(),
     y: integer("y").notNull(),
+    // Neighbour skill IDs from tree.lua connections[]. Populated by
+    // pob/tree-nodes ingest; null until that step runs.
+    connections: integer("connections").array(),
     raw: jsonb("raw").notNull().default({}),
   },
   (t) => [
@@ -291,6 +297,56 @@ export const uniqueItems = pgTable(
     ),
     index("unique_items_patch_idx").on(t.patch_version_id),
     index("unique_items_name_idx").on(t.name),
+  ],
+);
+
+// Charm items that auto-trigger based on conditions (replaced utility flasks).
+// Up to 3 slots: 1 from belt implicit, 1 from quest reward, 1 from some uniques.
+// Seeded statically in packages/ingest/src/data/charms-seed.ts (not from RePoE).
+export const charms = pgTable(
+  "charms",
+  {
+    id: serial("id").primaryKey(),
+    patch_version_id: integer("patch_version_id")
+      .notNull()
+      .references(() => patchVersions.id, { onDelete: "cascade" }),
+    name: varchar("name", { length: 64 }).notNull(),
+    // 'ailment_immunity' | 'buff' | 'utility'
+    charm_type: varchar("charm_type", { length: 32 }).notNull(),
+    // Condition that triggers the charm, e.g. "when you are Shocked"
+    trigger_condition: text("trigger_condition"),
+    effect: text("effect").notNull(),
+    effect_duration_ms: integer("effect_duration_ms"),
+    charges_max: integer("charges_max"),
+    charges_per_use: integer("charges_per_use"),
+  },
+  (t) => [
+    uniqueIndex("charms_patch_name_unique").on(t.patch_version_id, t.name),
+    index("charms_patch_idx").on(t.patch_version_id),
+    index("charms_type_idx").on(t.charm_type),
+  ],
+);
+
+// Augments (formerly Runes) — socketed into weapons and armour for bonus stats.
+// Caster weapons (wands, staves) and jewellery have 0 sockets.
+// Soul Cores (drop only from Trials of Chaos) are a separate mechanic — they
+// affect trials, not item sockets; handled via system-prompt knowledge.
+export const augments = pgTable(
+  "augments",
+  {
+    id: serial("id").primaryKey(),
+    patch_version_id: integer("patch_version_id")
+      .notNull()
+      .references(() => patchVersions.id, { onDelete: "cascade" }),
+    name: varchar("name", { length: 64 }).notNull(),
+    // Item types that accept this augment: 'weapon', 'armour', 'shield', 'quiver'
+    slot_types: text("slot_types").array().notNull().default([]),
+    effect: text("effect").notNull(),
+    tier: integer("tier"),
+  },
+  (t) => [
+    uniqueIndex("augments_patch_name_unique").on(t.patch_version_id, t.name),
+    index("augments_patch_idx").on(t.patch_version_id),
   ],
 );
 

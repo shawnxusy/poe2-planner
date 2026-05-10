@@ -5,6 +5,7 @@ import Fastify, { type FastifyInstance } from "fastify";
 import cors from "@fastify/cors";
 
 import { importPobRoutes } from "./routes/import-pob.js";
+import { exploreRoutes } from "./routes/explore.js";
 
 export async function buildApp(): Promise<FastifyInstance> {
   const app = Fastify({
@@ -20,6 +21,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   app.get("/health", async () => ({ status: "ok" }));
 
   await app.register(importPobRoutes);
+  await app.register(exploreRoutes);
 
   return app;
 }
