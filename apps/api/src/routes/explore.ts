@@ -6,6 +6,7 @@
 // Request body: { seed: string }
 // Response: text/event-stream
 //   data: {"type":"text","text":"..."}\n\n
+//   data: {"type":"usage","input_tokens":N,"output_tokens":N,"tool_calls":N,"iterations":N,"estimated_cost_usd":N}\n\n
 //   data: {"type":"done"}\n\n
 //   data: {"type":"error","message":"..."}\n\n
 
@@ -39,8 +40,12 @@ export async function exploreRoutes(app: FastifyInstance): Promise<void> {
     };
 
     try {
-      for await (const chunk of runBuildArchitect({ seed, patchVersionId })) {
-        send({ type: "text", text: chunk });
+      for await (const event of runBuildArchitect({ seed, patchVersionId })) {
+        if (event.type === "text") {
+          send({ type: "text", text: event.text });
+        } else if (event.type === "usage") {
+          send({ type: "usage", ...event.usage });
+        }
       }
       send({ type: "done" });
     } catch (err) {

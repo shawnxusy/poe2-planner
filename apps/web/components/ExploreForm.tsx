@@ -4,6 +4,14 @@ import { useRef, useState } from "react";
 
 type StreamState = "idle" | "streaming" | "done" | "error";
 
+interface UsageSummary {
+  input_tokens: number;
+  output_tokens: number;
+  tool_calls: number;
+  iterations: number;
+  estimated_cost_usd: number;
+}
+
 // Simple line-by-line markdown renderer for the agent's structured output.
 // Handles: ## h2, ### h3, **bold**, - list items, blank-line paragraphs.
 function renderLine(line: string, idx: number): React.ReactNode {
@@ -76,7 +84,30 @@ function inlineMarkdown(text: string): React.ReactNode {
   );
 }
 
-function BuildConceptCard({ text, state }: { text: string; state: StreamState }) {
+function UsageFooter({ usage }: { usage: UsageSummary }) {
+  const fmt = (n: number) => n.toLocaleString();
+  const cost = usage.estimated_cost_usd;
+  const costStr = cost < 0.01 ? "<$0.01" : `$${cost.toFixed(2)}`;
+  return (
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-ink-700/40 px-5 py-3 text-[10px] text-ink-600">
+      <span>
+        <span className="text-ink-400">{costStr}</span> est. cost
+      </span>
+      <span>
+        <span className="text-ink-400">{fmt(usage.input_tokens)}</span> in
+        {" / "}
+        <span className="text-ink-400">{fmt(usage.output_tokens)}</span> out tokens
+      </span>
+      <span>
+        <span className="text-ink-400">{usage.tool_calls}</span> tool calls
+        {" · "}
+        <span className="text-ink-400">{usage.iterations}</span> iterations
+      </span>
+    </div>
+  );
+}
+
+function BuildConceptCard({ text, state, usage }: { text: string; state: StreamState; usage: UsageSummary | null }) {
   const lines = text.split("\n");
 
   return (
@@ -106,6 +137,7 @@ function BuildConceptCard({ text, state }: { text: string; state: StreamState })
           <span className="inline-block h-4 w-0.5 animate-pulse bg-gold-500/60 align-middle" />
         )}
       </div>
+      {usage && <UsageFooter usage={usage} />}
     </div>
   );
 }
@@ -115,6 +147,7 @@ export function ExploreForm() {
   const [text, setText] = useState("");
   const [state, setState] = useState<StreamState>("idle");
   const [errMsg, setErrMsg] = useState<string | null>(null);
+  const [usage, setUsage] = useState<UsageSummary | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
   function reset() {
@@ -123,6 +156,7 @@ export function ExploreForm() {
     setText("");
     setState("idle");
     setErrMsg(null);
+    setUsage(null);
   }
 
   async function submit(e?: React.FormEvent) {
@@ -173,9 +207,22 @@ export function ExploreForm() {
               type: string;
               text?: string;
               message?: string;
+              input_tokens?: number;
+              output_tokens?: number;
+              tool_calls?: number;
+              iterations?: number;
+              estimated_cost_usd?: number;
             };
             if (msg.type === "text" && msg.text) {
               setText((prev) => prev + msg.text);
+            } else if (msg.type === "usage") {
+              setUsage({
+                input_tokens: msg.input_tokens ?? 0,
+                output_tokens: msg.output_tokens ?? 0,
+                tool_calls: msg.tool_calls ?? 0,
+                iterations: msg.iterations ?? 0,
+                estimated_cost_usd: msg.estimated_cost_usd ?? 0,
+              });
             } else if (msg.type === "done") {
               setState("done");
             } else if (msg.type === "error") {
@@ -259,7 +306,7 @@ export function ExploreForm() {
       )}
 
       {(text || state === "streaming") && (
-        <BuildConceptCard text={text} state={state} />
+        <BuildConceptCard text={text} state={state} usage={usage} />
       )}
     </div>
   );

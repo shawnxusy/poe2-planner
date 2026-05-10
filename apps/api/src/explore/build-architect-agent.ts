@@ -284,6 +284,23 @@ The following do NOT exist in PoE2 0.4 and must never appear in recommendations:
 - PoE1 league mechanics (Delve, Betrayal, etc.)`;
 
 
+// ── Token pricing ────────────────────────────────────────────────────────────
+// claude-opus-4-7 — verify at https://www.anthropic.com/pricing
+const PRICE_INPUT_PER_M  = 15.00; // USD per 1M input tokens
+const PRICE_OUTPUT_PER_M = 75.00; // USD per 1M output tokens
+
+export interface UsageSummary {
+  input_tokens: number;
+  output_tokens: number;
+  tool_calls: number;
+  iterations: number;
+  estimated_cost_usd: number;
+}
+
+export type AgentEvent =
+  | { type: "text"; text: string }
+  | { type: "usage"; usage: UsageSummary };
+
 // ── Agent runner ────────────────────────────────────────────────────────────
 
 export interface ExploreOptions {
@@ -294,7 +311,7 @@ export interface ExploreOptions {
 
 export async function* runBuildArchitect(
   opts: ExploreOptions,
-): AsyncGenerator<string> {
+): AsyncGenerator<AgentEvent> {
   const { seed, patchVersionId, maxIterations = 12 } = opts;
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
@@ -306,6 +323,11 @@ export async function* runBuildArchitect(
     { role: "user", content: `Design a build concept for: "${seed}"` },
   ];
 
+  let totalInput = 0;
+  let totalOutput = 0;
+  let totalToolCalls = 0;
+  let iterations = 0;
+
   for (let iter = 0; iter < maxIterations; iter++) {
     const response = await client.messages.create({
       model: "claude-opus-4-7",
@@ -315,13 +337,17 @@ export async function* runBuildArchitect(
       messages,
     });
 
+    iterations++;
+    totalInput  += response.usage.input_tokens;
+    totalOutput += response.usage.output_tokens;
+
     // Append assistant turn
     messages.push({ role: "assistant", content: response.content });
 
     // Stream any text blocks
     for (const block of response.content) {
       if (block.type === "text" && block.text) {
-        yield block.text;
+        yield { type: "text", text: block.text };
       }
     }
 
@@ -335,6 +361,7 @@ export async function* runBuildArchitect(
     for (const block of response.content) {
       if (block.type !== "tool_use") continue;
 
+      totalToolCalls++;
       let result: unknown;
       try {
         result = await dispatchTool(block.name, block.input as Record<string, unknown>, patchVersionId);
@@ -351,6 +378,15 @@ export async function* runBuildArchitect(
 
     messages.push({ role: "user", content: toolResults });
   }
+
+  const estimated_cost_usd =
+    (totalInput  / 1_000_000) * PRICE_INPUT_PER_M +
+    (totalOutput / 1_000_000) * PRICE_OUTPUT_PER_M;
+
+  yield {
+    type: "usage",
+    usage: { input_tokens: totalInput, output_tokens: totalOutput, tool_calls: totalToolCalls, iterations, estimated_cost_usd },
+  };
 }
 
 async function dispatchTool(
